@@ -397,20 +397,12 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, runTransaction, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, runTransaction, updateDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Firebase-Konfiguration (Bitte ersetzen Sie die Platzhalter durch Ihre eigenen Daten)
-        const firebaseConfig = {
-          apiKey: "AIzaSyCoP3TRsVluxrVXVxeZ_lJfeOyqrNbbGa0",
-          authDomain: "winkelmanngame.firebaseapp.com",
-          projectId: "winkelmanngame",
-          storageBucket: "winkelmanngame.firebasestorage.app",
-          messagingSenderId: "1012811950512",
-          appId: "1:1012811950512:web:61d506f84c217eb156ce75",
-          measurementId: "G-FDH9FT3QYR"
-        };
-        const initialAuthToken = null;
-        const appId = firebaseConfig.appId;
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : null);
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
         let app, db, auth;
         let highestLevel = 1;
@@ -570,7 +562,7 @@
                 multiplayerMessage.style.display = 'none';
                 const lobbyCode = generateLobbyCode();
                 try {
-                    const lobbyDocRef = doc(db, 'artifacts', appId, 'lobbies', lobbyCode);
+                    const lobbyDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', lobbyCode);
                     await setDoc(lobbyDocRef, {
                         hostId: userId,
                         players: [{ userId: userId, email: userEmail, stieleCount: 0 }],
@@ -597,7 +589,7 @@
                     return;
                 }
                 try {
-                    const lobbyDocRef = doc(db, 'artifacts', appId, 'lobbies', lobbyCode);
+                    const lobbyDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', lobbyCode);
                     const lobbyDoc = await getDoc(lobbyDocRef);
                     if (!lobbyDoc.exists()) {
                         multiplayerMessage.textContent = "Lobby nicht gefunden.";
@@ -627,7 +619,7 @@
             });
 
             startGameButton.addEventListener('click', async () => {
-                const lobbyDocRef = doc(db, 'artifacts', appId, 'lobbies', multiplayerLobbyCode);
+                const lobbyDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', multiplayerLobbyCode);
                 try {
                     await setDoc(lobbyDocRef, { gameActive: true, gameStartTime: Date.now() }, { merge: true });
                 } catch (e) {
@@ -637,7 +629,7 @@
 
             leaveLobbyButton.addEventListener('click', async () => {
                 if (multiplayerLobbyCode) {
-                    const lobbyDocRef = doc(db, 'artifacts', appId, 'lobbies', multiplayerLobbyCode);
+                    const lobbyDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', multiplayerLobbyCode);
                     try {
                         const lobbyDoc = await getDoc(lobbyDocRef);
                         if (lobbyDoc.exists()) {
@@ -668,7 +660,7 @@
             let lobbyUnsubscribe = null;
             function setupLobbyListener(code) {
                 if (lobbyUnsubscribe) lobbyUnsubscribe();
-                const lobbyDocRef = doc(db, 'artifacts', appId, 'lobbies', code);
+                const lobbyDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', code);
                 lobbyUnsubscribe = onSnapshot(lobbyDocRef, (doc) => {
                     const lobbyData = doc.data();
                     if (!lobbyData) {
@@ -727,13 +719,14 @@
                     }
                 } else {
                     userId = null;
+                    userEmail = null;
                     userInfoDisplay.textContent = '';
                     showScreen('authContainer');
                     loadingMessage.style.display = 'none';
                     authForms.style.display = 'block';
 
                     if (!initialAuthToken) {
-                        signInAnonymously(auth)
+                        await signInAnonymously(auth)
                             .catch(e => console.error("Anonyme Anmeldung fehlgeschlagen:", e));
                     }
                 }
@@ -780,7 +773,6 @@
             let isSpeaking = false;
             let lowLungsWarning = false;
             let playerStateUnsubscribe = null;
-            let stieleStateUnsubscribe = null;
 
             const baseSpeed = 250;
             const maxLungenKapazitaet = 100;
@@ -921,6 +913,7 @@
             }
             
             const LLM_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=";
+            const API_KEY = "";
             const systemPrompt = `Du bist Herr Winkelmann, ein sehr höflicher, leicht außer Atem geratener Mann, der damit beschäftigt ist, Stiele einzusammeln. Antworte immer kurz, freundlich und in der Ich-Form. Deine Antworten sollten widerspiegeln, dass du dich gerade anstrengst, aber fest entschlossen bist. Beziehe dich auf deine aktuelle Aufgabe, wenn es passt. Du bist ein einfacher Mann. Vermeide übermäßig komplexe Sprache.`;
             let isGeneratingResponse = false;
 
@@ -1082,7 +1075,7 @@
                 
                 resetGame();
                 
-                const playerDocRef = doc(db, 'artifacts', appId, 'lobbies', multiplayerLobbyCode, 'players', userId);
+                const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', multiplayerLobbyCode, 'players', userId);
                 await setDoc(playerDocRef, {
                     x: canvas.width / 2,
                     y: canvas.height / 2,
@@ -1091,13 +1084,13 @@
                     email: userEmail
                 });
 
-                const lobbyDocRef = doc(db, 'artifacts', appId, 'lobbies', multiplayerLobbyCode);
+                const lobbyDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', multiplayerLobbyCode);
                 const lobbySnapshot = await getDoc(lobbyDocRef);
                 const lobbyData = lobbySnapshot.data();
                 
                 gameData.stiele = lobbyData.stiele;
 
-                playerStateUnsubscribe = onSnapshot(collection(db, `artifacts/${appId}/lobbies/${multiplayerLobbyCode}/players`), (snapshot) => {
+                playerStateUnsubscribe = onSnapshot(collection(db, `artifacts/${appId}/public/data/lobbies/${multiplayerLobbyCode}/players`), (snapshot) => {
                     snapshot.docChanges().forEach(change => {
                         const player = change.doc.data();
                         gameData.multiplayerPlayers[change.doc.id] = player;
@@ -1125,9 +1118,8 @@
                 cancelAnimationFrame(animationFrameId);
                 if (multiplayerTimerId) clearInterval(multiplayerTimerId);
                 if (playerStateUnsubscribe) playerStateUnsubscribe();
-                if (stieleStateUnsubscribe) stieleStateUnsubscribe();
 
-                const lobbyDocRef = doc(db, 'artifacts', appId, 'lobbies', multiplayerLobbyCode);
+                const lobbyDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', multiplayerLobbyCode);
                 const lobbySnapshot = await getDoc(lobbyDocRef);
                 const lobbyData = lobbySnapshot.data();
                 const players = lobbyData.players.sort((a, b) => b.stieleCount - a.stieleCount);
@@ -1184,12 +1176,12 @@
                 gameData.herrWinkelmann.y = Math.max(0, Math.min(canvas.height - gameData.herrWinkelmann.height, gameData.herrWinkelmann.y));
                 
                 if (gameMode === 'multiplayer') {
-                    const playerDocRef = doc(db, 'artifacts', appId, 'lobbies', multiplayerLobbyCode, 'players', userId);
+                    const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', multiplayerLobbyCode, 'players', userId);
                     await setDoc(playerDocRef, { x: gameData.herrWinkelmann.x, y: gameData.herrWinkelmann.y, lungs: gameData.lungenKapazitaet }, { merge: true });
 
                     gameData.stiele.forEach((stiel, index) => {
                         if (checkCollision(gameData.herrWinkelmann, stiel)) {
-                             const lobbyDocRef = doc(db, 'artifacts', appId, 'lobbies', multiplayerLobbyCode);
+                             const lobbyDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', multiplayerLobbyCode);
                              runTransaction(db, async (transaction) => {
                                  const lobbyDoc = await transaction.get(lobbyDocRef);
                                  if (!lobbyDoc.exists()) throw "Lobby does not exist!";
@@ -1299,7 +1291,7 @@
                 lungenKapazitaetText.textContent = `${Math.floor(lungenProzent)}%`;
 
                 const lungenColor = lungenProzent > 50 ? 'var(--success)' : (lungenProzent > 20 ? 'var(--accent)' : 'var(--danger)');
-                lungsKapazitaetBar.style.background = lungenColor;
+                lungenKapazitaetBar.style.backgroundColor = lungenColor;
 
                 if (gameMode === 'multiplayer') {
                     const myPlayer = gameData.multiplayerPlayers[userId];
@@ -1328,7 +1320,7 @@
                          }, 1000);
                     }
                 } else {
-                    speak("Da gibt's nichts mehr...", "Charon");
+                    speak("Da gibt's nichts mehr.", "Charon");
                 }
                 
                 setTimeout(openLevelSelect, 2000);
