@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Herr Winkelmann</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: 'Roboto Mono', monospace;
+            color: #333;
+            overflow: hidden;
+            transition: background-color 2s ease-in-out;
+            user-select: none;
+        }
+        .ui-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+        }
+        .ui-screen.active {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+        .game-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        canvas {
+            background-color: #a4d3ff;
+            border-radius: 10px;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.2);
+            touch-action: none;
+        }
+        .ui-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f8f8;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .stat-item {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        .progress-bar {
+            width: 80%;
+            height: 25px;
+            background-color: #ddd;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 5px;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff7e5f, #feb47b);
+            transition: width 0.5s ease-out;
+        }
+        #lungen-kapazitaet-bar {
+            background: linear-gradient(90deg, #4CAF50, #8bc34a);
+        }
+        .info-message {
+            margin-top: 15px;
+            font-size: 1.2em;
+            text-align: center;
+            line-height: 1.4;
+        }
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(255, 0, 0, 0);
+            color: white;
+            font-size: 3em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+            opacity: 0;
+            visibility: hidden;
+            transition: background-color 2s, opacity 2s;
+            z-index: 1000;
+        }
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .win-overlay {
+            background-color: rgba(76, 175, 80, 0.7);
+        }
+        .button {
+            padding: 12px 24px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(145deg, #f8a141, #ff7e5f);
+            color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 20px;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+        }
+        .button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .level-info {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .level-progress-bar {
+            width: 100%;
+            height: 10px;
+            background-color: #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .level-progress-bar-fill {
+            height: 100%;
+            background-color: #f8a141;
+            transition: width 0.5s ease-out;
+        }
+        /* Dialogue box styles */
+        .dialogue-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .dialogue-box {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .dialogue-title {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .dialogue-text {
+            border: 2px solid #ddd;
+            padding: 15px;
+            border-radius: 10px;
+            min-height: 80px;
+            background-color: #f9f9f9;
+            text-align: left;
+            overflow-y: auto;
+            max-height: 200px;
+            line-height: 1.4;
+        }
+        .dialogue-input-container {
+            display: flex;
+            gap: 10px;
+        }
+        .dialogue-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 1em;
+        }
+        .dialogue-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #ff7e5f;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .dialogue-button:hover {
+            background: #feb47b;
+        }
+        .dialogue-close-button {
+            align-self: flex-end;
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #999;
+        }
+        .level-select-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+        .level-select-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            width: 90%;
+            max-width: 600px;
+            max-height: 90%;
+            overflow-y: auto;
+            text-align: center;
+        }
+        .level-select-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .level-button {
+            padding: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background-color: #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+            position: relative;
+        }
+        .level-button:hover:not(:disabled) {
+            background-color: #e0e0e0;
+            border-color: #ff7e5f;
+        }
+        .level-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #ccc;
+        }
+        .level-button .lock-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            fill: #666;
+            transition: transform 0.3s ease-in-out;
+            opacity: 1;
+        }
+        .level-button.unlocked .lock-icon {
+            animation: unlock-fade 0.5s ease-in-out forwards;
+            opacity: 0;
+        }
+        @keyframes unlock-fade {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.5);
+                opacity: 0;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0;
+            }
+        }
+        
+        /* --- New UI Styles --- */
+        .auth-container, .mode-select-container, .multiplayer-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        .auth-container h2, .mode-select-container h2, .multiplayer-container h2 {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .auth-container input, .multiplayer-container input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 1em;
+            transition: border-color 0.2s;
+        }
+        .auth-container input:focus, .multiplayer-container input:focus {
+            outline: none;
+            border-color: #ff7e5f;
+        }
+        .auth-container button, .mode-select-container button, .multiplayer-container button {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(145deg, #f8a141, #ff7e5f);
+            color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 15px;
+        }
+        .auth-container button:hover, .mode-select-container button:hover, .multiplayer-container button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+        }
+        .auth-container p, .mode-select-container p, .multiplayer-container p {
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        .auth-container a, .multiplayer-container a {
+            color: #ff7e5f;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        #userInfo {
+            font-size: 1em;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        #multiplayerInfo {
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+        .player-list {
+            margin-top: 10px;
+        }
+        .player-list-item {
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container active" id="authContainer">
+        <div id="loadingMessage">Lade Spiel...</div>
+        <div id="authForms" style="display: none;">
+            <div id="loginForm">
+                <h2>Anmelden</h2>
+                <input type="email" id="loginEmail" placeholder="E-Mail">
+                <input type="password" id="loginPassword" placeholder="Passwort">
+                <button id="loginButton">Anmelden</button>
+                <p>Noch kein Konto? <a href="#" id="showRegister">Jetzt registrieren</a></p>
+                <p id="authError" style="color: red;"></p>
+            </div>
+            <div id="registerForm" style="display: none;">
+                <h2>Registrieren</h2>
+                <input type="email" id="registerEmail" placeholder="E-Mail">
+                <input type="password" id="registerPassword" placeholder="Passwort">
+                <button id="registerButton">Registrieren</button>
+                <p>Bereits ein Konto? <a href="#" id="showLogin">Zurück zur Anmeldung</a></p>
+                <p id="registerError" style="color: red;"></p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="ui-screen" id="modeSelectContainer">
+        <h2>Wählen Sie einen Modus</h2>
+        <p id="modeSelectInfo" style="margin-bottom: 20px;"></p>
+        <button id="singlePlayerButton">Einzelspieler</button>
+        <button id="multiplayerButton">Mehrspieler</button>
+        <button id="logoutButton">Abmelden</button>
+    </div>
+
+    <div class="ui-screen" id="multiplayerContainer">
+        <h2>Mehrspieler-Modus</h2>
+        <div id="multiplayerUI">
+            <p><strong>Lobby beitreten:</strong></p>
+            <input type="text" id="joinLobbyCode" placeholder="Lobby-Code eingeben">
+            <button id="joinLobbyButton">Beitreten</button>
+            <p style="margin: 20px 0;">- ODER -</p>
+            <p><strong>Neue Lobby erstellen:</strong></p>
+            <button id="createLobbyButton">Lobby erstellen</button>
+        </div>
+        <p id="multiplayerMessage" style="color: red;"></p>
+        <button id="multiplayerBackButton" style="margin-top: 20px;">Zurück</button>
+    </div>
+
+    <div class="ui-screen" id="lobbyContainer">
+        <h2 id="lobbyTitle"></h2>
+        <p id="lobbyCodeDisplay" style="font-size: 1.5em; font-weight: bold;"></p>
+        <p>Warten auf andere Spieler...</p>
+        <div class="player-list" id="playerList"></div>
+        <p id="lobbyStatusMessage" style="color: green; margin-top: 10px;"></p>
+        <button id="startGameButton" style="display: none;">Spiel starten</button>
+        <button id="leaveLobbyButton" style="margin-top: 20px;">Lobby verlassen</button>
+    </div>
+
+    <div class="game-container" id="gameContainer">
+        <div id="userInfo"></div>
+        <div class="level-info" id="level-info">Level 1</div>
+        <canvas id="gameCanvas"></canvas>
+        <div class="ui-panel">
+            <div class="stats-container">
+                <div class="stat-item">
+                    Lungenkapazität<br>
+                    <span id="lungen-kapazitaet-text">100%</span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" id="lungen-kapazitaet-bar"></div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    Stiele gesammelt<br>
+                    <span id="stiele-counter">0 / 5</span>
+                </div>
+                <div class="stat-item" id="multiplayerTimerDisplay" style="display: none;">
+                    Zeit verbleibend<br>
+                    <span id="gameTimer">3:00</span>
+                </div>
+            </div>
+            <div class="info-message" id="info-message">Bewegen Sie sich mit den Pfeiltasten oder WASD. Sammeln Sie alle Stiele, um das Level zu beenden.</div>
+            <div style="display: flex; gap: 10px;">
+                <button class="button" id="openDialogueButton">✨ Lass uns reden!</button>
+                <button class="button" id="openLevelSelectButton">Level-Auswahl</button>
+                <button class="button" id="returnToModeSelectButton">Modus wechseln</button>
+            </div>
+        </div>
+    </div>
+    <div class="overlay" id="overlay">
+        <span id="overlay-text"></span>
+    </div>
+
+    <!-- Dialogue UI -->
+    <div class="dialogue-overlay" id="dialogueOverlay">
+        <div class="dialogue-box">
+            <button class="dialogue-close-button" id="closeDialogueButton">&times;</button>
+            <div class="dialogue-title">Herr Winkelmann sagt...</div>
+            <div class="dialogue-text" id="dialogueText">Fragen Sie mich alles, aber bitte nicht, wie viele Stiele ich noch brauche... Bin schon ganz aus der Puste!</div>
+            <div class="dialogue-input-container">
+                <input type="text" id="dialogueInput" class="dialogue-input" placeholder="Stellen Sie eine Frage...">
+                <button class="dialogue-button" id="sendDialogueButton">Senden</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Level Select UI -->
+    <div class="level-select-overlay" id="levelSelectOverlay">
+        <div class="level-select-container">
+            <div class="dialogue-title">Wähle ein Level</div>
+            <div class="level-select-grid" id="levelSelectGrid"></div>
+            <button class="button" style="margin-top: 20px;" id="closeLevelSelectButton">Schließen</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, linkWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, runTransaction, getDocs, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // IMPORTANT: Replace the placeholders below with your own Firebase project data
+        // You can find instructions for this in the conversation.
+        const firebaseConfig = {
+          apiKey: "AIzaSyCoP3TRsVluxrVXVxeZ_lJfeOyqrNbbGa0",
+          authDomain: "winkelmanngame.firebaseapp.com",
+          projectId: "winkelmanngame",
+          storageBucket: "winkelmanngame.firebasestorage.app",
+          messagingSenderId: "1012811950512",
+          appId: "1:1012811950512:web:61d506f84c217eb156ce75",
+          measurementId: "G-FDH9FT3QYR"
+        };
+        const initialAuthToken = null;
+        const appId = firebaseConfig.appId;
+
+        let app, db, auth;
+        let highestLevel = 1;
+        let userId;
+        let userEmail;
+        let gameMode = 'singleplayer';
+        let multiplayerLobbyCode = null;
+        let multiplayerTimerId = null;
+
+        // UI element references
+        const authContainer = document.getElementById('authContainer');
+        const authForms = document.getElementById('authForms');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const gameContainer = document.getElementById('gameContainer');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const showRegisterLink = document.getElementById('showRegister');
+        const showLoginLink = document.getElementById('showLogin');
+        const loginEmailInput = document.getElementById('loginEmail');
+        const loginPasswordInput = document.getElementById('loginPassword');
+        const loginButton = document.getElementById('loginButton');
+        const registerEmailInput = document.getElementById('registerEmail');
+        const registerPasswordInput = document.getElementById('registerPassword');
+        const registerButton = document.getElementById('registerButton');
+        const authError = document.getElementById('authError');
+        const registerError = document.getElementById('registerError');
+        const userInfoDisplay = document.getElementById('userInfo');
+        const logoutButton = document.getElementById('logoutButton');
+
+        // New UI references
+        const modeSelectContainer = document.getElementById('modeSelectContainer');
+        const modeSelectInfo = document.getElementById('modeSelectInfo');
+        const singlePlayerButton = document.getElementById('singlePlayerButton');
+        const multiplayerButton = document.getElementById('multiplayerButton');
+        const multiplayerContainer = document.getElementById('multiplayerContainer');
+        const joinLobbyCodeInput = document.getElementById('joinLobbyCode');
+        const joinLobbyButton = document.getElementById('joinLobbyButton');
+        const createLobbyButton = document.getElementById('createLobbyButton');
+        const multiplayerMessage = document.getElementById('multiplayerMessage');
+        const multiplayerBackButton = document.getElementById('multiplayerBackButton');
+        const lobbyContainer = document.getElementById('lobbyContainer');
+        const lobbyTitle = document.getElementById('lobbyTitle');
+        const lobbyCodeDisplay = document.getElementById('lobbyCodeDisplay');
+        const playerList = document.getElementById('playerList');
+        const lobbyStatusMessage = document.getElementById('lobbyStatusMessage');
+        const startGameButton = document.getElementById('startGameButton');
+        const leaveLobbyButton = document.getElementById('leaveLobbyButton');
+        const multiplayerTimerDisplay = document.getElementById('multiplayerTimerDisplay');
+        const gameTimerDisplay = document.getElementById('gameTimer');
+        const returnToModeSelectButton = document.getElementById('returnToModeSelectButton');
+
+        // Main application flow, to be called after Firebase init
+        async function startAppFlow() {
+            // Check if Firebase was initialized successfully
+            if (!auth || !db) {
+                console.error("Firebase not initialized. Cannot start app flow.");
+                loadingMessage.textContent = "Fehler: Firebase-Konfiguration ungültig. Bitte überprüfen Sie Ihre Daten.";
+                return;
+            }
+
+            // Authentication Event Listeners
+            showRegisterLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                authError.textContent = '';
+            });
+
+            showLoginLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                registerError.textContent = '';
+            });
+
+            loginButton.addEventListener('click', async () => {
+                const email = loginEmailInput.value;
+                const password = loginPasswordInput.value;
+                authError.textContent = '';
+                try {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } catch (error) {
+                    authError.textContent = 'Login fehlgeschlagen. Bitte überprüfen Sie E-Mail und Passwort.';
+                    console.error("Login failed:", error);
+                }
+            });
+
+            registerButton.addEventListener('click', async () => {
+                const email = registerEmailInput.value;
+                const password = registerPasswordInput.value;
+                registerError.textContent = '';
+                try {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                } catch (error) {
+                    if (error.code === 'auth/email-already-in-use') {
+                        registerError.textContent = 'Diese E-Mail-Adresse wird bereits verwendet.';
+                    } else {
+                        registerError.textContent = 'Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.';
+                    }
+                    console.error("Registration failed:", error);
+                }
+            });
+
+            logoutButton.addEventListener('click', async () => {
+                try {
+                    await signOut(auth);
+                } catch (error) {
+                    console.error("Logout failed:", error);
+                }
+            });
+            
+            // New UI Event Listeners
+            singlePlayerButton.addEventListener('click', () => {
+                gameMode = 'singleplayer';
+                modeSelectContainer.classList.remove('active');
+                gameContainer.style.display = 'flex';
+                multiplayerTimerDisplay.style.display = 'none';
+                openLevelSelectButton.style.display = 'block';
+                openDialogueButton.style.display = 'block';
+                initializeGame();
+            });
+
+            multiplayerButton.addEventListener('click', () => {
+                gameMode = 'multiplayer';
+                modeSelectContainer.classList.remove('active');
+                multiplayerContainer.style.display = 'flex';
+                multiplayerContainer.classList.add('active');
+            });
+
+            multiplayerBackButton.addEventListener('click', () => {
+                multiplayerContainer.classList.remove('active');
+                modeSelectContainer.classList.add('active');
+            });
+            
+            // Lobby Functions
+            createLobbyButton.addEventListener('click', async () => {
+                multiplayerMessage.textContent = "";
+                const lobbyCode = generateLobbyCode();
+                try {
+                    const lobbyDocRef = doc(db, 'artifacts', appId, 'lobbies', lobbyCode);
+                    await setDoc(lobbyDocRef, {
+                        hostId: userId,
+                        players: [{
+                            userId: userId,
+                            email: userEmail,
+                            stieleCount: 0
+                        }],
+                        gameActive: false,
+                        gameStartTime: null,
+                        stiele: []
+                    });
+                    multiplayerLobbyCode = lobbyCode;
+                    setupLobbyListener(lobbyCode);
+                    multiplayerContainer.classList.remove('active');
+                    lobbyContainer.classList.add('active');
+                } catch (e) {
+                    multiplayerMessage.textContent = "Lobby konnte nicht erstellt werden. Bitte versuchen Sie es erneut.";
+                    console.error("Error creating lobby:", e);
+                }
+            });
+
+            joinLobbyButton.addEventListener('click', async () => {
+                multiplayerMessage.textContent = "";
+                const lobbyCode = joinLobbyCodeInput.value.trim().toUpperCase();
+                if (lobbyCode.length !== 6) {
+                    multiplayerMessage.textContent = "Ungültiger Lobby-Code.";
+                    return;
+                }
+                try {
+                    const lobbyDocRef = doc(db, 'artifacts', appId, 'lobbies', lobbyCode);
+                    const lobbyDoc = await getDoc(lobbyDocRef);
+                    if (!lobbyDoc.exists()) {
+                        multiplayerMessage.textContent = "Lobby nicht gefunden.";
+                        return;
+                    }
+
+                    const lobbyData = lobbyDoc.data();
+                    if (lobbyData.gameActive) {
+                        multiplayerMessage.textContent = "Spiel in dieser Lobby ist bereits aktiv.";
+                        return;
+                    }
+
+                    // Add player to lobby
+                    await updateDoc(lobbyDocRef, {
+                        players: [...lobbyData.players, {
+                            userId: userId,
+                            email: userEmail,
+                            stieleCount: 0
+                        }]
+                    });
+
+                    multiplayerLobbyCode = lobbyCode;
+                    setupLobbyListener(lobbyCode);
+                    multiplayerContainer.classList.remove('active');
+                    lobbyContainer.classList.add('active');
+
+                } catch (e) {
+                    multiplayerMessage.textContent = "Lobby konnte nicht beigetreten werden. Bitte versuchen Sie es erneut.";
+                    console.error("Error joining lobby:", e);
+                }
+            });
+
+            startGameButton.addEventListener('click', async () => {
+                const lobbyDocRef = doc(db, 'artifacts', appId, 'lobbies', multiplayerLobbyCode);
+                try {
+                    await setDoc(lobbyDocRef, { gameActive: true, gameStartTime: Date.now() }, { merge: true });
+                } catch (e) {
+                    console.error("Error starting game:", e);
+                }
+            });
+
+            leaveLobbyButton.addEventListener('click', async () => {
+                if (multiplayerLobbyCode) {
+                    const lobbyDocRef = doc(db, 'artifacts', appId, 'lobbies', multiplayerLobbyCode);
+                    try {
+                        const lobbyDoc = await getDoc(lobbyDocRef);
+                        if (lobbyDoc.exists()) {
+                            const lobbyData = lobbyDoc.data();
+                            const updatedPlayers = lobbyData.players.filter(p => p.userId !== userId);
+                            if (updatedPlayers.length > 0) {
+                                await updateDoc(lobbyDocRef, { players: updatedPlayers });
+                            } else {
+                                await deleteDoc(lobbyDocRef);
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Error leaving lobby:", e);
+                    }
+                    resetMultiplayerState();
+                }
+            });
+
+            function generateLobbyCode() {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                let result = '';
+                for (let i = 0; i < 6; i++) {
+                    result += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return result;
+            }
+
+            function resetMultiplayerState() {
+                multiplayerLobbyCode = null;
+                lobbyContainer.classList.remove('active');
+                multiplayerContainer.classList.add('active');
+                if (multiplayerTimerId) clearInterval(multiplayerTimerId);
+            }
+
+            let lobbyUnsubscribe = null;
+            function setupLobbyListener(code) {
+                if (lobbyUnsubscribe) lobbyUnsubscribe();
+
+                const lobbyDocRef = doc(db, 'artifacts', appId, 'lobbies', code);
+                lobbyUnsubscribe = onSnapshot(lobbyDocRef, (doc) => {
+                    const lobbyData = doc.data();
+                    if (!lobbyData) {
+                        multiplayerMessage.textContent = "Lobby wurde aufgelöst.";
+                        resetMultiplayerState();
+                        return;
+                    }
+
+                    lobbyCodeDisplay.textContent = `Code: ${code}`;
+                    
+                    // Update player list
+                    playerList.innerHTML = lobbyData.players.map(p => `<div class="player-list-item">${p.email}</div>`).join('');
+                    
+                    // Host-specific UI
+                    if (lobbyData.hostId === userId) {
+                        startGameButton.style.display = lobbyData.players.length >= 1 ? 'block' : 'none';
+                        lobbyTitle.textContent = "Ihre Lobby";
+                        lobbyStatusMessage.textContent = "Teilen Sie diesen Code, um Freunde einzuladen!";
+                    } else {
+                        startGameButton.style.display = 'none';
+                        lobbyTitle.textContent = "Lobby beigetreten";
+                        lobbyStatusMessage.textContent = "Warten auf den Host, um das Spiel zu starten...";
+                    }
+
+                    // Start game if active
+                    if (lobbyData.gameActive) {
+                         lobbyContainer.classList.remove('active');
+                         gameContainer.style.display = 'flex';
+                         initializeGame(lobbyData);
+                    }
+                });
+            }
+
+            returnToModeSelectButton.addEventListener('click', () => {
+                gameContainer.style.display = 'none';
+                modeSelectContainer.classList.add('active');
+            });
+
+            // Main Auth State Listener
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    userEmail = user.email || 'Anonym';
+                    userInfoDisplay.textContent = `Angemeldet als: ${userEmail}`;
+                    authContainer.style.display = 'none';
+                    modeSelectContainer.style.display = 'flex';
+                    modeSelectContainer.classList.add('active');
+                    modeSelectInfo.textContent = `Willkommen, ${userEmail}!`;
+
+                    // Only load progress for singleplayer mode
+                    const gameDocRef = doc(db, 'artifacts', appId, 'users', userId, 'gameData', 'progress');
+                    try {
+                        const docSnap = await getDoc(gameDocRef);
+                        if (docSnap.exists()) {
+                            highestLevel = docSnap.data().highestLevel;
+                            console.log("Progress loaded from Firestore. Highest level:", highestLevel);
+                        } else {
+                            await setDoc(gameDocRef, { highestLevel: 1 });
+                            console.log("New progress document created.");
+                        }
+                    } catch (error) {
+                        console.error("Error fetching or creating user data:", error);
+                    }
+                    
+                } else {
+                    userId = null;
+                    userInfoDisplay.textContent = '';
+                    authContainer.style.display = 'flex';
+                    authContainer.classList.add('active');
+                    modeSelectContainer.style.display = 'none';
+                    modeSelectContainer.classList.remove('active');
+                    gameContainer.style.display = 'none';
+                    
+                    loadingMessage.style.display = 'none';
+                    authForms.style.display = 'block';
+
+                    if (initialAuthToken === null) {
+                        signInAnonymously(auth)
+                            .then(() => console.log("Signed in anonymously."))
+                            .catch(e => console.error("Firebase anonymous sign-in failed:", e));
+                    }
+                }
+            });
+        }
+
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            console.log("Firebase initialized successfully.");
+            startAppFlow();
+        } catch (e) {
+            console.error("Firebase initialization failed. Please check the provided firebaseConfig.", e);
+            loadingMessage.textContent = "Fehler: Verbindung zur Datenbank fehlgeschlagen. Bitte versuchen Sie es später erneut.";
+            loadingMessage.style.color = "red";
+            loadingMessage.style.fontSize = "1.2em";
+            loadingMessage.style.fontWeight = "bold";
+        }
+
+
+        // The entire game logic, wrapped in a function to be called after auth state is determined
+        async function initializeGame(lobbyData = null) {
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const overlay = document.getElementById('overlay');
+            const overlayText = document.getElementById('overlay-text');
+            const lungenKapazitaetBar = document.getElementById('lungen-kapazitaet-bar');
+            const lungenKapazitaetText = document.getElementById('lungen-kapazitaet-text');
+            const stieleCounterText = document.getElementById('stiele-counter');
+            const infoMessage = document.getElementById('info-message');
+            const levelInfo = document.getElementById('level-info');
+            
+            // UI elements
+            const openDialogueButton = document.getElementById('openDialogueButton');
+            const dialogueOverlay = document.getElementById('dialogueOverlay');
+            const dialogueText = document.getElementById('dialogueText');
+            const dialogueInput = document.getElementById('dialogueInput');
+            const sendDialogueButton = document.getElementById('sendDialogueButton');
+            const closeDialogueButton = document.getElementById('closeDialogueButton');
+            const openLevelSelectButton = document.getElementById('openLevelSelectButton');
+            const levelSelectOverlay = document.getElementById('levelSelectOverlay');
+            const levelSelectGrid = document.getElementById('levelSelectGrid');
+            const closeLevelSelectButton = document.getElementById('closeLevelSelectButton');
+
+            let animationFrameId;
+            let lastTime = 0;
+            let keys = {};
+            let isRunning = false;
+            let gameData = { level: 1 };
+            let isSpeaking = false;
+            let lowLungsWarning = false;
+            let playerStateUnsubscribe = null;
+
+            const baseSpeed = 250;
+            const maxLungenKapazitaet = 100;
+            const TOTAL_LEVELS = 50;
+            const MULTIPLAYER_DURATION = 180; // 3 minutes in seconds
+            const MULTIPLAYER_REQUIRED_STIELE = 500; // Not used, just for display
+
+            function getNonOverlappingPosition(existingObjects, width, height) {
+                let newPos, overlapping;
+                do {
+                    overlapping = false;
+                    newPos = {
+                        x: Math.random() * (canvas.width - width) + width / 2,
+                        y: Math.random() * (canvas.height - height) + height / 2,
+                        width: width,
+                        height: height
+                    };
+                    
+                    if (checkCollision(gameData.herrWinkelmann, newPos)) {
+                        overlapping = true;
+                        continue;
+                    }
+                    
+                    for (const obj of existingObjects) {
+                        if (checkCollision(obj, newPos)) {
+                            overlapping = true;
+                            break;
+                        }
+                    }
+                } while (overlapping);
+                return newPos;
+            }
+
+            // --- Gemini TTS API Integration ---
+            const TTS_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=";
+            const API_KEY = ""; // Die API-Schlüssel für Gemini werden in dieser Umgebung von der Plattform bereitgestellt.
+
+            async function speak(text, voiceName = "Kore") {
+                if (isSpeaking) return;
+                isSpeaking = true;
+                
+                try {
+                    const payload = {
+                        contents: [{ parts: [{ text }] }],
+                        generationConfig: {
+                            responseModalities: ["AUDIO"],
+                            speechConfig: {
+                                voiceConfig: {
+                                    prebuiltVoiceConfig: { voiceName }
+                                }
+                            }
+                        },
+                        model: "gemini-2.5-flash-preview-tts"
+                    };
+
+                    const response = await fetch(TTS_API_URL + API_KEY, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API error: ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    const part = result?.candidates?.[0]?.content?.parts?.[0];
+                    const audioData = part?.inlineData?.data;
+                    const mimeType = part?.inlineData?.mimeType;
+
+                    if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                        const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)[1], 10);
+                        const pcmData = base64ToArrayBuffer(audioData);
+                        const pcm16 = new Int16Array(pcmData);
+                        const wavBlob = pcmToWav(pcm16, sampleRate);
+                        const audioUrl = URL.createObjectURL(wavBlob);
+
+                        const audio = new Audio(audioUrl);
+                        audio.play();
+                        audio.onended = () => {
+                            URL.revokeObjectURL(audioUrl);
+                            isSpeaking = false;
+                        };
+                    } else {
+                        throw new Error("Invalid audio data from API");
+                    }
+                } catch (error) {
+                    console.error("Failed to generate speech:", error);
+                    isSpeaking = false;
+                }
+            }
+
+            function base64ToArrayBuffer(base64) {
+                const binaryString = window.atob(base64);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                return bytes.buffer;
+            }
+
+            function pcmToWav(pcmData, sampleRate) {
+                const numChannels = 1;
+                const bytesPerSample = 2;
+                const blockAlign = numChannels * bytesPerSample;
+                const byteRate = sampleRate * blockAlign;
+
+                const wavHeader = new ArrayBuffer(44);
+                const view = new DataView(wavHeader);
+
+                // RIFF chunk
+                writeString(view, 0, 'RIFF');
+                view.setUint32(4, 36 + pcmData.byteLength, true); // ChunkSize
+                writeString(view, 8, 'WAVE');
+
+                // fmt chunk
+                writeString(view, 12, 'fmt ');
+                view.setUint32(16, 16, true); // Subchunk1Size
+                view.setUint16(20, 1, true); // AudioFormat (1=PCM)
+                view.setUint16(22, numChannels, true);
+                view.setUint32(24, sampleRate, true);
+                view.setUint32(28, byteRate, true);
+                view.setUint16(32, blockAlign, true);
+                view.setUint16(34, 16, true); // BitsPerSample
+
+                // data chunk
+                writeString(view, 36, 'data');
+                view.setUint32(40, pcmData.byteLength, true);
+
+                const blob = new Blob([wavHeader, pcmData], { type: 'audio/wav' });
+                return blob;
+            }
+
+            function writeString(view, offset, string) {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            }
+            // --- End of Gemini TTS API Integration ---
+
+            // --- Gemini LLM Dialogue Integration ---
+            const LLM_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=";
+            const systemPrompt = `Du bist Herr Winkelmann, ein sehr höflicher, leicht außer Atem geratener Mann, der damit beschäftigt ist, Stiele einzusammeln. Antworte immer kurz, freundlich und in der Ich-Form. Deine Antworten sollten widerspiegeln, dass du dich gerade anstrengst, aber fest entschlossen bist. Beziehe dich auf deine aktuelle Aufgabe, wenn es passt. Du bist ein einfacher Mann. Vermeide übermäßig komplexe Sprache.`;
+            let isGeneratingResponse = false;
+
+            async function generateAndSpeakResponse(userQuery) {
+                if (isGeneratingResponse) return;
+                isGeneratingResponse = true;
+                sendDialogueButton.disabled = true;
+                dialogueInput.disabled = true;
+                dialogueText.textContent = "Herr Winkelmann denkt nach...";
+
+                try {
+                    const payload = {
+                        contents: [{ parts: [{ text: userQuery }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                    };
+
+                    const response = await fetch(LLM_API_URL + API_KEY, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API error: ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                    if (text) {
+                        dialogueText.textContent = text;
+                        await speak(text, "Leda");
+                    } else {
+                        throw new Error("Invalid response from LLM API");
+                    }
+                } catch (error) {
+                    console.error("Failed to generate dialogue:", error);
+                    dialogueText.textContent = "Huch, etwas ist schiefgelaufen. Ich kann jetzt nicht reden.";
+                } finally {
+                    isGeneratingResponse = false;
+                    sendDialogueButton.disabled = false;
+                    dialogueInput.disabled = false;
+                }
+            }
+            // --- End of Gemini LLM Dialogue Integration ---
+
+            async function saveHighestLevel(level) {
+                if (level > highestLevel) {
+                    highestLevel = level;
+                    const gameDocRef = doc(db, 'artifacts', appId, 'users', userId, 'gameData', 'progress');
+                    await setDoc(gameDocRef, { highestLevel: highestLevel }, { merge: true });
+                    return true;
+                }
+                return false;
+            }
+
+            function resizeCanvas() {
+                canvas.width = window.innerWidth * 0.7;
+                canvas.height = window.innerHeight * 0.7;
+                if (canvas.width > 800) canvas.width = 800;
+                if (canvas.height > 600) canvas.height = 600;
+                resetGame();
+            }
+
+            class GameObject {
+                constructor(x, y, width, height, color, id = null) {
+                    this.x = x;
+                    this.y = y;
+                    this.width = width;
+                    this.height = height;
+                    this.color = color;
+                    this.id = id;
+                }
+                draw() {
+                    ctx.fillStyle = this.color;
+                    ctx.fillRect(this.x, this.y, this.width, this.height);
+                }
+            }
+            
+            // Function to get level settings dynamically
+            function getLevelSettings(level) {
+                return {
+                    requiredStiele: Math.min(50, 5 + Math.floor(level * 1.5)),
+                    initialStiele: 5,
+                    obstacles: Math.min(20, Math.floor((level - 1) / 3) + 1),
+                    lungenDrainRate: 1 + (level - 1) * 0.1,
+                    lungLossOnHit: 15,
+                };
+            }
+
+            function generateStiele(count) {
+                const existingObjects = [...gameData.stiele, ...gameData.obstacles];
+                for (let i = 0; i < count; i++) {
+                    const pos = getNonOverlappingPosition(existingObjects, 15, 15);
+                    gameData.stiele.push(new GameObject(pos.x, pos.y, 15, 15, 'orange', crypto.randomUUID()));
+                }
+            }
+
+            function resetGame(level = 1) {
+                cancelAnimationFrame(animationFrameId);
+                isRunning = false;
+                gameData.level = level;
+                
+                const settings = getLevelSettings(gameData.level);
+                
+                gameData = {
+                    ...gameData,
+                    herrWinkelmann: {
+                        x: canvas.width / 2,
+                        y: canvas.height / 2,
+                        width: 30,
+                        height: 30,
+                        speed: baseSpeed,
+                    },
+                    stiele: [],
+                    obstacles: [],
+                    stielCounter: 0,
+                    lungenKapazitaet: maxLungenKapazitaet,
+                    requiredStiele: settings.requiredStiele,
+                    players: {}, // Multiplayer player data
+                    gameStartTime: 0,
+                    multiplayerPlayers: {}, // For drawing other players
+                };
+                
+                // Only generate obstacles and stiele in single-player
+                if (gameMode === 'singleplayer') {
+                    const existingObjects = [gameData.herrWinkelmann];
+                    for (let i = 0; i < settings.obstacles; i++) {
+                        const obstacleSize = Math.random() * 30 + 30;
+                        const pos = getNonOverlappingPosition(existingObjects, obstacleSize, obstacleSize);
+                        const newObstacle = new GameObject(pos.x, pos.y, obstacleSize, obstacleSize, 'black');
+                        gameData.obstacles.push(newObstacle);
+                        existingObjects.push(newObstacle);
+                    }
+                    generateStiele(settings.initialStiele);
+                }
+
+                draw();
+                updateUI();
+                if (gameMode === 'singleplayer') {
+                     showOverlay("Willkommen! Sammle die Stiele!", false);
+                }
+            }
+            
+            async function startGame() {
+                overlay.classList.remove('active');
+                if (gameMode === 'multiplayer') {
+                    startMultiplayerGame();
+                } else if (!isRunning) {
+                    isRunning = true;
+                    lastTime = performance.now();
+                    animationFrameId = requestAnimationFrame(gameLoop);
+                    infoMessage.textContent = "Sammle die Stiele, bevor die Lungenkapazität aufgebraucht ist!";
+                    speak("Los geht's! Nur nicht schlapp machen!");
+                }
+            }
+            
+            async function startMultiplayerGame() {
+                multiplayerTimerDisplay.style.display = 'block';
+                openLevelSelectButton.style.display = 'none';
+                openDialogueButton.style.display = 'none';
+                returnToModeSelectButton.style.display = 'block';
+
+                resetGame();
+                
+                // Initial state for multiplayer
+                const playerDocRef = doc(db, 'artifacts', appId, 'lobbies', multiplayerLobbyCode, 'players', userId);
+                await setDoc(playerDocRef, {
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    stieleCount: 0,
+                    lungs: maxLungenKapazitaet,
+                    email: userEmail
+                });
+
+                const lobbyDocRef = doc(db, 'artifacts', appId, 'lobbies', multiplayerLobbyCode);
+                
+                playerStateUnsubscribe = onSnapshot(collection(db, `artifacts/${appId}/lobbies/${multiplayerLobbyCode}/players`), (snapshot) => {
+                    snapshot.docChanges().forEach(change => {
+                        const player = change.doc.data();
+                        gameData.multiplayerPlayers[change.doc.id] = player;
+                    });
+                });
+
+                let lobbySnapshot = await getDoc(lobbyDocRef);
+                let lobbyData = lobbySnapshot.data();
+                
+                gameData.stiele = lobbyData.stiele;
+
+                // Start game loop
+                isRunning = true;
+                lastTime = performance.now();
+                animationFrameId = requestAnimationFrame(gameLoop);
+                
+                // Start the 3-minute timer
+                multiplayerTimerId = setInterval(() => {
+                    const elapsedTime = (Date.now() - lobbyData.gameStartTime) / 1000;
+                    const remainingTime = Math.max(0, MULTIPLAYER_DURATION - elapsedTime);
+                    const minutes = Math.floor(remainingTime / 60);
+                    const seconds = Math.floor(remainingTime % 60);
+                    gameTimerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    if (remainingTime <= 0) {
+                        endMultiplayerGame();
+                    }
+                }, 1000);
+            }
+            
+            async function endMultiplayerGame() {
+                isRunning = false;
+                cancelAnimationFrame(animationFrameId);
+                if (multiplayerTimerId) clearInterval(multiplayerTimerId);
+                if (playerStateUnsubscribe) playerStateUnsubscribe();
+
+                const lobbyDocRef = doc(db, 'artifacts', appId, 'lobbies', multiplayerLobbyCode);
+                const lobbySnapshot = await getDoc(lobbyDocRef);
+                const lobbyData = lobbySnapshot.data();
+                const players = lobbyData.players.sort((a, b) => b.stieleCount - a.stieleCount);
+                const winner = players[0];
+
+                let message = `Das Spiel ist vorbei!`;
+                if (winner) {
+                    if (winner.userId === userId) {
+                        message = `Herzlichen Glückwunsch! Sie haben mit ${winner.stieleCount} Stielen gewonnen!`;
+                    } else {
+                        message = `Das Spiel ist vorbei! ${winner.email} hat mit ${winner.stieleCount} Stielen gewonnen!`;
+                    }
+                } else {
+                    message = "Das Spiel ist vorbei! Kein Gewinner, da keine Stiele gesammelt wurden."
+                }
+                showOverlay(message, true);
+                
+                // Cleanup
+                setTimeout(async () => {
+                    await deleteDoc(lobbyDocRef);
+                    multiplayerContainer.classList.remove('active');
+                    lobbyContainer.classList.remove('active');
+                    modeSelectContainer.classList.add('active');
+                    gameContainer.style.display = 'none';
+                }, 5000);
+            }
+
+            function gameLoop(time) {
+                const deltaTime = (time - lastTime) / 1000;
+                lastTime = time;
+
+                if (isRunning) {
+                    update(deltaTime);
+                    draw();
+                    animationFrameId = requestAnimationFrame(gameLoop);
+                }
+            }
+
+            async function update(deltaTime) {
+                if (gameMode === 'multiplayer') {
+                    // Multiplayer Logic
+                    const playerPos = {
+                        x: gameData.herrWinkelmann.x,
+                        y: gameData.herrWinkelmann.y,
+                        stieleCount: gameData.stielCounter,
+                        lungs: gameData.lungenKapazitaet
+                    };
+                    const speed = baseSpeed;
+                    let dx = 0;
+                    let dy = 0;
+                    if (keys['arrowup'] || keys['w']) dy = -1;
+                    if (keys['arrowdown'] || keys['s']) dy = 1;
+                    if (keys['arrowleft'] || keys['a']) dx = -1;
+                    if (keys['arrowright'] || keys['d']) dx = 1;
+
+                    if (dx !== 0 || dy !== 0) {
+                        const length = Math.sqrt(dx * dx + dy * dy);
+                        if (length > 0) {
+                            playerPos.x += (dx / length) * speed * deltaTime;
+                            playerPos.y += (dy / length) * speed * deltaTime;
+                        }
+                    }
+
+                    playerPos.x = Math.max(0, Math.min(canvas.width - 30, playerPos.x));
+                    playerPos.y = Math.max(0, Math.min(canvas.height - 30, playerPos.y));
+                    
+                    gameData.herrWinkelmann.x = playerPos.x;
+                    gameData.herrWinkelmann.y = playerPos.y;
+
+                    // Update local stiel count
+                    gameData.stiele.forEach((stiel, index) => {
+                        if (checkCollision(gameData.herrWinkelmann, stiel)) {
+                             // Try to claim stiel in Firestore
+                             const lobbyDocRef = doc(db, 'artifacts', appId, 'lobbies', multiplayerLobbyCode);
+                             runTransaction(db, async (transaction) => {
+                                 const lobbyDoc = await transaction.get(lobbyDocRef);
+                                 if (!lobbyDoc.exists()) throw "Lobby does not exist!";
+                                 const currentStiele = lobbyDoc.data().stiele;
+                                 const stielIndex = currentStiele.findIndex(s => s.id === stiel.id);
+                                 
+                                 if (stielIndex !== -1) {
+                                     const updatedStiele = [...currentStiele];
+                                     updatedStiele.splice(stielIndex, 1);
+                                     
+                                     const players = lobbyDoc.data().players;
+                                     const myPlayer = players.find(p => p.userId === userId);
+                                     if (myPlayer) {
+                                         myPlayer.stieleCount++;
+                                     }
+                                     
+                                     transaction.update(lobbyDocRef, { stiele: updatedStiele, players: players });
+                                 }
+                             });
+                        }
+                    });
+
+                    // Update player position
+                    const playerDocRef = doc(db, 'artifacts', appId, 'lobbies', multiplayerLobbyCode, 'players', userId);
+                    await setDoc(playerDocRef, { x: gameData.herrWinkelmann.x, y: gameData.herrWinkelmann.y }, { merge: true });
+
+                } else {
+                    // Singleplayer Logic
+                    const settings = getLevelSettings(gameData.level);
+                    // Handle Movement
+                    const speed = baseSpeed;
+                    let dx = 0;
+                    let dy = 0;
+                    if (keys['arrowup'] || keys['w']) dy = -1;
+                    if (keys['arrowdown'] || keys['s']) dy = 1;
+                    if (keys['arrowleft'] || keys['a']) dx = -1;
+                    if (keys['arrowright'] || keys['d']) dx = 1;
+
+                    if (dx !== 0 || dy !== 0) {
+                        const length = Math.sqrt(dx * dx + dy * dy);
+                        if (length > 0) {
+                            gameData.herrWinkelmann.x += (dx / length) * speed * deltaTime;
+                            gameData.herrWinkelmann.y += (dy / length) * speed * deltaTime;
+                        }
+                    }
+
+                    // Boundary Check
+                    gameData.herrWinkelmann.x = Math.max(0, Math.min(canvas.width - gameData.herrWinkelmann.width, gameData.herrWinkelmann.x));
+                    gameData.herrWinkelmann.y = Math.max(0, Math.min(canvas.height - gameData.herrWinkelmann.height, gameData.herrWinkelmann.y));
+
+                    // Lungenkapazitäts-Drain
+                    gameData.lungenKapazitaet -= settings.lungenDrainRate * deltaTime;
+                    if (gameData.lungenKapazitaet <= 0) {
+                        endLevel(false, "Da gibt's nichts mehr...");
+                        return;
+                    }
+                    
+                    // Low lung capacity warning
+                    if (gameData.lungenKapazitaet < 20 && !lowLungsWarning) {
+                        speak("Uff... die Luft wird knapp!", "Orus");
+                        lowLungsWarning = true;
+                    } else if (gameData.lungenKapazitaet > 20) {
+                        lowLungsWarning = false;
+                    }
+                    
+                    // Collision Detection with Stiele
+                    gameData.stiele.forEach((stiel, index) => {
+                        if (checkCollision(gameData.herrWinkelmann, stiel)) {
+                            gameData.stiele.splice(index, 1);
+                            gameData.stielCounter++;
+                            gameData.lungenKapazitaet = Math.min(maxLungenKapazitaet, gameData.lungenKapazitaet + 10);
+                            
+                            if (gameData.stielCounter >= gameData.requiredStiele) {
+                                endLevel(true, "Winkelmann dankt.");
+                                return;
+                            }
+                        }
+                    });
+
+                    // Check for dynamic stiel generation
+                    if (gameData.stiele.length === 0 && gameData.stielCounter < gameData.requiredStiele) {
+                        const stieleToGenerate = Math.min(5, gameData.requiredStiele - gameData.stielCounter);
+                        generateStiele(stieleToGenerate);
+                    }
+
+                    // Collision Detection with Obstacles
+                    gameData.obstacles.forEach(obstacle => {
+                        if (checkCollision(gameData.herrWinkelmann, obstacle)) {
+                            gameData.lungenKapazitaet -= settings.lungLossOnHit;
+                            speak("Aua! Das tat weh!", "Charon");
+                        }
+                    });
+                }
+                
+                updateUI();
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw Stiele
+                gameData.stiele.forEach(stiel => {
+                    ctx.beginPath();
+                    ctx.arc(stiel.x + stiel.width / 2, stiel.y + stiel.height / 2, stiel.width / 2, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#ff7e5f';
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                });
+                
+                // Draw Obstacles
+                if (gameMode === 'singleplayer') {
+                     gameData.obstacles.forEach(obstacle => {
+                        ctx.fillStyle = '#333';
+                        ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                    });
+                }
+
+                // Draw Players
+                const players = Object.values(gameData.multiplayerPlayers);
+                if (gameMode === 'multiplayer' && players.length > 0) {
+                    players.forEach(player => {
+                        const color = player.userId === userId ? '#3f51b5' : '#FFD700';
+                        ctx.fillStyle = color;
+                        ctx.fillRect(player.x, player.y, 30, 30);
+                        
+                        ctx.fillStyle = '#333';
+                        ctx.font = '12px Arial';
+                        ctx.fillText(player.email.split('@')[0], player.x, player.y - 5);
+                    });
+                } else {
+                     // Draw Herr Winkelmann (singleplayer mode)
+                    ctx.fillStyle = '#3f51b5';
+                    ctx.fillRect(gameData.herrWinkelmann.x, gameData.herrWinkelmann.y, gameData.herrWinkelmann.width, gameData.herrWinkelmann.height);
+                }
+            }
+
+            function updateUI() {
+                const lungenProzent = Math.max(0, (gameData.lungenKapazitaet / maxLungenKapazitaet) * 100);
+                lungenKapazitaetBar.style.width = `${lungenProzent}%`;
+                lungenKapazitaetText.textContent = `${Math.floor(lungenProzent)}%`;
+
+                const lungenColor = lungenProzent > 50 ? '#4CAF50' : (lungenProzent > 20 ? '#FFC107' : '#F4436');
+                lungenKapazitaetBar.style.background = `linear-gradient(90deg, ${lungenColor}, ${lungenProzent > 50 ? '#8bc34a' : (lungenProzent > 20 ? '#ffeb3b' : '#ff7979')})`;
+                
+                if (gameMode === 'multiplayer') {
+                    const myPlayer = gameData.multiplayerPlayers[userId];
+                    stieleCounterText.textContent = `${myPlayer ? myPlayer.stieleCount : 0}`;
+                    infoMessage.textContent = "Sammeln Sie mehr Stiele als Ihr Gegner!";
+                    levelInfo.style.display = 'none';
+                } else {
+                    stieleCounterText.textContent = `${gameData.stielCounter} / ${gameData.requiredStiele}`;
+                    levelInfo.textContent = `Level ${gameData.level}`;
+                    infoMessage.textContent = "Bewegen Sie sich mit den Pfeiltasten oder WASD. Sammeln Sie alle Stiele, um das Level zu beenden.";
+                    levelInfo.style.display = 'block';
+                }
+            }
+
+            function showOverlay(text, isWin) {
+                overlayText.textContent = text;
+                overlay.style.backgroundColor = isWin ? 'rgba(76, 175, 80, 0.7)' : 'rgba(255, 0, 0, 0.7)';
+                overlay.classList.add('active');
+            }
+
+            function endLevel(isWin, message) {
+                isRunning = false;
+                cancelAnimationFrame(animationFrameId);
+                showOverlay(message, isWin);
+
+                let delay = isWin ? 2000 : 1000;
+                
+                if (isWin) {
+                    const levelUnlocked = saveHighestLevel(gameData.level + 1);
+                    speak("Das war eine Meisterleistung!", "Zephyr");
+                    if (levelUnlocked) {
+                         setTimeout(() => {
+                            const newLevelButton = document.getElementById(`level-button-${gameData.level + 1}`);
+                            if (newLevelButton) {
+                                newLevelButton.disabled = false;
+                                newLevelButton.classList.add('unlocked');
+                                setTimeout(() => newLevelButton.classList.remove('unlocked'), 1000);
+                            }
+                         }, delay / 2);
+                    }
+                } else {
+                    speak("Da gibt's nichts mehr...", "Charon");
+                }
+                
+                setTimeout(openLevelSelect, delay);
+            }
+
+            function checkCollision(rect1, rect2) {
+                return rect1.x < rect2.x + rect2.width &&
+                       rect1.x + rect1.width > rect2.x &&
+                       rect1.y < rect2.y + rect2.height &&
+                       rect1.y + rect1.height > rect2.y;
+            }
+
+            // Level selection logic
+            function populateLevelSelect() {
+                levelSelectGrid.innerHTML = '';
+                for (let i = 1; i <= TOTAL_LEVELS; i++) {
+                    const button = document.createElement('button');
+                    button.textContent = i;
+                    button.id = `level-button-${i}`;
+                    button.className = 'level-button';
+                    if (i > highestLevel) {
+                        button.disabled = true;
+                        button.innerHTML += `
+                            <svg class="lock-icon" viewBox="0 0 24 24">
+                                <path d="M18,11H17A1,1,0,0,0,16,12v2a1,1,0,0,0,1,1h1a1,1,0,0,0,1-1V12A1,1,0,0,0,18,11Zm-5,6a5,5,0,1,0-5-5A5,5,0,0,0,13,17ZM13,9a3,3,0,1,1-3-3A3,3,0,0,1,13,9Z"/>
+                            </svg>
+                        `;
+                    }
+                    button.addEventListener('click', () => {
+                        resetGame(i);
+                        closeLevelSelect();
+                        startGame();
+                    });
+                    levelSelectGrid.appendChild(button);
+                }
+            }
+
+            function openDialogue() {
+                dialogueOverlay.style.display = 'flex';
+                isRunning = false;
+                cancelAnimationFrame(animationFrameId);
+            }
+
+            function closeDialogue() {
+                dialogueOverlay.style.display = 'none';
+                if (gameData.lungenKapazitaet > 0) {
+                    startGame();
+                }
+            }
+
+            function openLevelSelect() {
+                populateLevelSelect();
+                levelSelectOverlay.style.display = 'flex';
+                isRunning = false;
+                cancelAnimationFrame(animationFrameId);
+                overlay.classList.remove('active');
+            }
+
+            function closeLevelSelect() {
+                levelSelectOverlay.style.display = 'none';
+                if (gameData.lungenKapazitaet > 0) {
+                    startGame();
+                }
+            }
+
+            document.addEventListener('keydown', (e) => {
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key.toLowerCase())) {
+                    keys[e.key.toLowerCase()] = true;
+                    if (!isRunning && overlay.classList.contains('active')) {
+                         startGame();
+                    }
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                keys[e.key.toLowerCase()] = false;
+            });
+            
+            // Singleplayer buttons
+            openDialogueButton.addEventListener('click', openDialogue);
+            closeDialogueButton.addEventListener('click', closeDialogue);
+            sendDialogueButton.addEventListener('click', () => {
+                const userQuery = dialogueInput.value.trim();
+                if (userQuery) {
+                    generateAndSpeakResponse(userQuery);
+                    dialogueInput.value = '';
+                }
+            });
+            dialogueInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    sendDialogueButton.click();
+                }
+            });
+            openLevelSelectButton.addEventListener('click', openLevelSelect);
+            closeLevelSelectButton.addEventListener('click', closeLevelSelect);
+            
+            // Other events
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            resetGame(highestLevel);
+        }
+    </script>
+</body>
+</html>
