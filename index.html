@@ -362,6 +362,37 @@
             text-align: center;
             margin-bottom: 10px;
         }
+
+        /* Button styles for Google login */
+        #googleLoginButton {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: linear-gradient(145deg, #4285F4, #34609a);
+            color: white;
+            margin-top: 15px;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            font-size: 1em;
+        }
+        #googleLoginButton:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+        }
+        #googleLoginButton:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        #googleLoginButton svg {
+            width: 20px;
+            height: 20px;
+        }
     </style>
 </head>
 <body>
@@ -384,6 +415,18 @@
                 <p>Bereits ein Konto? <a href="#" id="showLogin">Zurück zur Anmeldung</a></p>
                 <p id="registerError" style="color: red;"></p>
             </div>
+
+            <hr style="width: 80%; border: 1px solid #ddd; margin: 20px 0;">
+
+            <button id="googleLoginButton">
+                <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M44.5 20H24V28H35.5C34.7 32.7 30.6 35.5 24 35.5C18.6 35.5 13.9 31.8 11.9 26.5C11.3 25.1 11 23.6 11 22C11 20.4 11.3 18.9 11.9 17.5C13.9 12.2 18.6 8.5 24 8.5C28.2 8.5 31.7 10.1 34.3 12.7L39.1 7.9C35.2 4.1 29.8 2 24 2C13.8 2 5.5 9.7 2.7 20H44.5V20Z" fill="#F4B400"/>
+                    <path d="M24 35.5C30.6 35.5 34.7 32.7 35.5 28H24V35.5Z" fill="#DB4437"/>
+                    <path d="M11.9 26.5C11.3 25.1 11 23.6 11 22C11 20.4 11.3 18.9 11.9 17.5C13.9 12.2 18.6 8.5 24 8.5C28.2 8.5 31.7 10.1 34.3 12.7L39.1 7.9C35.2 4.1 29.8 2 24 2C13.8 2 5.5 9.7 2.7 20L11.9 26.5Z" fill="#4285F4"/>
+                    <path d="M2.7 20C2.1 21.3 2 22.7 2 24C2 25.3 2.1 26.7 2.7 28L11.9 21.5L2.7 20Z" fill="#0F9D58"/>
+                </svg>
+                Mit Google anmelden
+            </button>
         </div>
     </div>
 
@@ -441,9 +484,11 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, linkWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, linkWithCredential, EmailAuthProvider, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // WICHTIG: Ersetzen Sie die Platzhalter unten durch Ihre eigenen Firebase-Projektdaten
+        // Eine Anleitung dazu finden Sie in der Konversation.
         const firebaseConfig = {
           apiKey: "AIzaSyCoP3TRsVluxrVXVxeZ_lJfeOyqrNbbGa0",
           authDomain: "winkelmanngame.firebaseapp.com",
@@ -459,8 +504,8 @@
         let app, db, auth;
         let highestLevel = 1;
         let userId;
-        let isAuthReady = false;
 
+        // UI element references
         const authContainer = document.getElementById('authContainer');
         const authForms = document.getElementById('authForms');
         const loadingMessage = document.getElementById('loadingMessage');
@@ -479,15 +524,18 @@
         const registerError = document.getElementById('registerError');
         const userInfoDisplay = document.getElementById('userInfo');
         const logoutButton = document.getElementById('logoutButton');
+        const googleLoginButton = document.getElementById('googleLoginButton');
 
         // Main application flow, to be called after Firebase init
-        function startAppFlow() {
+        async function startAppFlow() {
+            // Check if Firebase was initialized successfully
             if (!auth || !db) {
                 console.error("Firebase not initialized. Cannot start app flow.");
                 loadingMessage.textContent = "Fehler: Firebase-Konfiguration ungültig. Bitte überprüfen Sie Ihre Daten.";
                 return;
             }
 
+            // Authentication Event Listeners
             showRegisterLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 loginForm.style.display = 'none';
@@ -507,14 +555,7 @@
                 const password = loginPasswordInput.value;
                 authError.textContent = '';
                 try {
-                    const credential = EmailAuthProvider.credential(email, password);
-                    if (auth.currentUser && auth.currentUser.isAnonymous) {
-                         await linkWithCredential(auth.currentUser, credential);
-                         authError.textContent = '';
-                         console.log("Anonymes Konto erfolgreich verknüpft.");
-                     } else {
-                         await signInWithEmailAndPassword(auth, email, password);
-                     }
+                    await signInWithEmailAndPassword(auth, email, password);
                 } catch (error) {
                     authError.textContent = 'Login fehlgeschlagen. Bitte überprüfen Sie E-Mail und Passwort.';
                     console.error("Login failed:", error);
@@ -526,14 +567,7 @@
                 const password = registerPasswordInput.value;
                 registerError.textContent = '';
                 try {
-                    if (auth.currentUser && auth.currentUser.isAnonymous) {
-                         const credential = EmailAuthProvider.credential(email, password);
-                         await linkWithCredential(auth.currentUser, credential);
-                         registerError.textContent = '';
-                         console.log("Anonymes Konto erfolgreich verknüpft.");
-                    } else {
-                         await createUserWithEmailAndPassword(auth, email, password);
-                    }
+                    await createUserWithEmailAndPassword(auth, email, password);
                 } catch (error) {
                     if (error.code === 'auth/email-already-in-use') {
                         registerError.textContent = 'Diese E-Mail-Adresse wird bereits verwendet.';
@@ -541,6 +575,17 @@
                         registerError.textContent = 'Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.';
                     }
                     console.error("Registration failed:", error);
+                }
+            });
+
+            googleLoginButton.addEventListener('click', async () => {
+                const provider = new GoogleAuthProvider();
+                authError.textContent = '';
+                try {
+                    await signInWithPopup(auth, provider);
+                } catch (error) {
+                    authError.textContent = 'Anmeldung mit Google fehlgeschlagen.';
+                    console.error("Google login failed:", error);
                 }
             });
 
@@ -552,10 +597,10 @@
                 }
             });
             
-            // The main auth state listener that controls the app flow
+            // Main Auth State Listener
             onAuthStateChanged(auth, async (user) => {
-                isAuthReady = true;
                 if (user) {
+                    // User is signed in. This is triggered after anonymous sign-in or email/password sign-in.
                     userId = user.uid;
                     userInfoDisplay.textContent = `Angemeldet als: ${user.email || 'Anonym'}`;
                     authContainer.style.display = 'none';
@@ -571,16 +616,12 @@
                         } else {
                             // Create a new document if it doesn't exist
                             await setDoc(gameDocRef, { highestLevel: 1 });
-                            highestLevel = 1;
                             console.log("New progress document created.");
                         }
                     } catch (error) {
                         console.error("Error fetching or creating user data:", error);
-                        // Fallback to highestLevel = 1 if there's an error
-                        highestLevel = 1;
                     }
 
-                    // Only initialize the game AFTER the highest level is fetched
                     initializeGame();
                     
                 } else {
@@ -590,24 +631,24 @@
                     gameContainer.style.display = 'none';
                     console.log("User logged out.");
                     
+                    // Show auth forms and hide loading message
                     loadingMessage.style.display = 'none';
                     authForms.style.display = 'block';
 
-                    // Initial sign-in attempt
+                    // For github.io, we need to sign in anonymously on load
                     signInAnonymously(auth)
                         .then(() => console.log("Signed in anonymously."))
                         .catch(e => console.error("Firebase anonymous sign-in failed:", e));
                 }
             });
 
-            // Initial anonymous sign-in
-            if (!auth.currentUser) {
-                signInAnonymously(auth)
-                    .then(() => console.log("Signed in anonymously."))
-                    .catch(e => console.error("Firebase anonymous sign-in failed:", e));
-            }
+            // Initial sign-in attempt
+            signInAnonymously(auth)
+                .then(() => console.log("Signed in anonymously."))
+                .catch(e => console.error("Firebase anonymous sign-in failed:", e));
         }
 
+        // The entire game logic, wrapped in a function to be called after auth state is determined
         async function initializeGame() {
             const canvas = document.getElementById('gameCanvas');
             const ctx = canvas.getContext('2d');
@@ -619,6 +660,7 @@
             const infoMessage = document.getElementById('info-message');
             const levelInfo = document.getElementById('level-info');
             
+            // UI elements
             const openDialogueButton = document.getElementById('openDialogueButton');
             const dialogueOverlay = document.getElementById('dialogueOverlay');
             const dialogueText = document.getElementById('dialogueText');
@@ -634,7 +676,7 @@
             let lastTime = 0;
             let keys = {};
             let isRunning = false;
-            let gameData = { level: highestLevel };
+            let gameData = { level: 1 };
             let isSpeaking = false;
             let lowLungsWarning = false;
 
@@ -668,8 +710,9 @@
                 return newPos;
             }
 
+            // --- Gemini TTS API Integration ---
             const TTS_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=";
-            const API_KEY = ""; 
+            const API_KEY = ""; // Die API-Schlüssel für Gemini werden in dieser Umgebung von der Plattform bereitgestellt.
 
             async function speak(text, voiceName = "Kore") {
                 if (isSpeaking) return;
@@ -745,19 +788,22 @@
                 const wavHeader = new ArrayBuffer(44);
                 const view = new DataView(wavHeader);
 
+                // RIFF chunk
                 writeString(view, 0, 'RIFF');
-                view.setUint32(4, 36 + pcmData.byteLength, true); 
+                view.setUint32(4, 36 + pcmData.byteLength, true); // ChunkSize
                 writeString(view, 8, 'WAVE');
 
+                // fmt chunk
                 writeString(view, 12, 'fmt ');
-                view.setUint32(16, 16, true); 
-                view.setUint16(20, 1, true); 
+                view.setUint32(16, 16, true); // Subchunk1Size
+                view.setUint16(20, 1, true); // AudioFormat (1=PCM)
                 view.setUint16(22, numChannels, true);
                 view.setUint32(24, sampleRate, true);
                 view.setUint32(28, byteRate, true);
                 view.setUint16(32, blockAlign, true);
-                view.setUint16(34, 16, true); 
+                view.setUint16(34, 16, true); // BitsPerSample
 
+                // data chunk
                 writeString(view, 36, 'data');
                 view.setUint32(40, pcmData.byteLength, true);
 
@@ -770,7 +816,9 @@
                     view.setUint8(offset + i, string.charCodeAt(i));
                 }
             }
-            
+            // --- End of Gemini TTS API Integration ---
+
+            // --- Gemini LLM Dialogue Integration ---
             const LLM_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=";
             const systemPrompt = `Du bist Herr Winkelmann, ein sehr höflicher, leicht außer Atem geratener Mann, der damit beschäftigt ist, Stiele einzusammeln. Antworte immer kurz, freundlich und in der Ich-Form. Deine Antworten sollten widerspiegeln, dass du dich gerade anstrengst, aber fest entschlossen bist. Beziehe dich auf deine aktuelle Aufgabe, wenn es passt. Du bist ein einfacher Mann. Vermeide übermäßig komplexe Sprache.`;
             let isGeneratingResponse = false;
@@ -816,9 +864,10 @@
                     dialogueInput.disabled = false;
                 }
             }
+            // --- End of Gemini LLM Dialogue Integration ---
 
             async function saveHighestLevel(level) {
-                if (isAuthReady && level > highestLevel) {
+                if (level > highestLevel) {
                     highestLevel = level;
                     const gameDocRef = doc(db, 'artifacts', appId, 'users', userId, 'gameData', 'progress');
                     await setDoc(gameDocRef, { highestLevel: highestLevel }, { merge: true });
@@ -832,7 +881,7 @@
                 canvas.height = window.innerHeight * 0.7;
                 if (canvas.width > 800) canvas.width = 800;
                 if (canvas.height > 600) canvas.height = 600;
-                resetGame(gameData.level);
+                resetGame();
             }
 
             class GameObject {
@@ -849,13 +898,14 @@
                 }
             }
             
+            // Function to get level settings dynamically
             function getLevelSettings(level) {
                 return {
-                    requiredStiele: Math.min(100, 10 + Math.floor(level * 2)),
+                    requiredStiele: Math.min(50, 5 + Math.floor(level * 1.5)),
                     initialStiele: 5,
-                    obstacles: Math.min(30, Math.floor((level) / 2) + 2),
-                    lungenDrainRate: 1.5 + (level - 1) * 0.2,
-                    lungLossOnHit: 15 + (level - 1) * 2,
+                    obstacles: Math.min(20, Math.floor((level - 1) / 3) + 1),
+                    lungenDrainRate: 1 + (level - 1) * 0.1,
+                    lungLossOnHit: 15,
                 };
             }
 
@@ -867,11 +917,11 @@
                 }
             }
 
-            function resetGame(level) {
+            function resetGame(level = 1) {
                 cancelAnimationFrame(animationFrameId);
                 isRunning = false;
                 gameData.level = level;
-                
+
                 const settings = getLevelSettings(gameData.level);
 
                 gameData = {
@@ -890,6 +940,7 @@
                     requiredStiele: settings.requiredStiele,
                 };
 
+                // Generate Obstacles
                 const existingObjects = [gameData.herrWinkelmann];
                 for (let i = 0; i < settings.obstacles; i++) {
                     const obstacleSize = Math.random() * 30 + 30;
@@ -899,6 +950,7 @@
                     existingObjects.push(newObstacle);
                 }
                 
+                // Initial Stiel generation
                 generateStiele(settings.initialStiele);
 
                 draw();
@@ -930,13 +982,14 @@
 
             function update(deltaTime) {
                 const settings = getLevelSettings(gameData.level);
+                // Handle Movement
                 const speed = baseSpeed;
                 let dx = 0;
                 let dy = 0;
-                if (keys['arrowup'] || keys['w']) dy = -1;
-                if (keys['arrowdown'] || keys['s']) dy = 1;
-                if (keys['arrowleft'] || keys['a']) dx = -1;
-                if (keys['arrowright'] || keys['d']) dx = 1;
+                if (keys['ArrowUp'] || keys['w']) dy = -1;
+                if (keys['ArrowDown'] || keys['s']) dy = 1;
+                if (keys['ArrowLeft'] || keys['a']) dx = -1;
+                if (keys['ArrowRight'] || keys['d']) dx = 1;
 
                 if (dx !== 0 || dy !== 0) {
                     const length = Math.sqrt(dx * dx + dy * dy);
@@ -946,15 +999,18 @@
                     }
                 }
 
+                // Boundary Check
                 gameData.herrWinkelmann.x = Math.max(0, Math.min(canvas.width - gameData.herrWinkelmann.width, gameData.herrWinkelmann.x));
                 gameData.herrWinkelmann.y = Math.max(0, Math.min(canvas.height - gameData.herrWinkelmann.height, gameData.herrWinkelmann.y));
 
+                // Lungenkapazitäts-Drain
                 gameData.lungenKapazitaet -= settings.lungenDrainRate * deltaTime;
                 if (gameData.lungenKapazitaet <= 0) {
                     endLevel(false, "Da gibt's nichts mehr...");
                     return;
                 }
                 
+                // Low lung capacity warning
                 if (gameData.lungenKapazitaet < 20 && !lowLungsWarning) {
                     speak("Uff... die Luft wird knapp!", "Orus");
                     lowLungsWarning = true;
@@ -962,6 +1018,7 @@
                     lowLungsWarning = false;
                 }
                 
+                // Collision Detection with Stiele
                 gameData.stiele.forEach((stiel, index) => {
                     if (checkCollision(gameData.herrWinkelmann, stiel)) {
                         gameData.stiele.splice(index, 1);
@@ -975,11 +1032,13 @@
                     }
                 });
 
+                // Check for dynamic stiel generation
                 if (gameData.stiele.length === 0 && gameData.stielCounter < gameData.requiredStiele) {
                     const stieleToGenerate = Math.min(5, gameData.requiredStiele - gameData.stielCounter);
                     generateStiele(stieleToGenerate);
                 }
 
+                // Collision Detection with Obstacles
                 gameData.obstacles.forEach(obstacle => {
                     if (checkCollision(gameData.herrWinkelmann, obstacle)) {
                         gameData.lungenKapazitaet -= settings.lungLossOnHit;
@@ -993,6 +1052,7 @@
             function draw() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
+                // Draw Stiele
                 gameData.stiele.forEach(stiel => {
                     ctx.beginPath();
                     ctx.arc(stiel.x + stiel.width / 2, stiel.y + stiel.height / 2, stiel.width / 2, 0, 2 * Math.PI);
@@ -1003,11 +1063,13 @@
                     ctx.stroke();
                 });
                 
+                // Draw Obstacles
                 gameData.obstacles.forEach(obstacle => {
                     ctx.fillStyle = '#333';
                     ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
                 });
 
+                // Draw Herr Winkelmann
                 ctx.fillStyle = '#3f51b5';
                 ctx.fillRect(gameData.herrWinkelmann.x, gameData.herrWinkelmann.y, gameData.herrWinkelmann.width, gameData.herrWinkelmann.height);
             }
@@ -1032,7 +1094,7 @@
                 overlay.classList.add('active');
             }
 
-            async function endLevel(isWin, message) {
+            function endLevel(isWin, message) {
                 isRunning = false;
                 cancelAnimationFrame(animationFrameId);
                 showOverlay(message, isWin);
@@ -1040,7 +1102,7 @@
                 let delay = isWin ? 2000 : 1000;
                 
                 if (isWin) {
-                    const levelUnlocked = await saveHighestLevel(gameData.level + 1);
+                    const levelUnlocked = saveHighestLevel(gameData.level + 1);
                     speak("Das war eine Meisterleistung!", "Zephyr");
                     if (levelUnlocked) {
                          setTimeout(() => {
@@ -1066,6 +1128,7 @@
                        rect1.y + rect1.height > rect2.y;
             }
 
+            // Level selection logic
             function populateLevelSelect() {
                 levelSelectGrid.innerHTML = '';
                 for (let i = 1; i <= TOTAL_LEVELS; i++) {
@@ -1119,9 +1182,8 @@
             }
 
             document.addEventListener('keydown', (e) => {
-                const key = e.key.toLowerCase();
-                if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(key)) {
-                    keys[key] = true;
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key.toLowerCase())) {
+                    keys[e.key.toLowerCase()] = true;
                     if (!isRunning && overlay.classList.contains('active')) {
                          startGame();
                     }
@@ -1150,11 +1212,11 @@
             closeLevelSelectButton.addEventListener('click', closeLevelSelect);
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
-            
-            // This is the initial call to start the game after auth and data is ready
+
             resetGame(highestLevel);
         }
         
+        // Try to initialize Firebase. All app logic is dependent on this.
         try {
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
