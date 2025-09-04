@@ -274,7 +274,7 @@
 </head>
 <body class="bg-background">
     <div id="authContainer" class="screen-container active">
-        <div id="loadingMessage" class="text-xl font-bold">Lade Spiel...</div>
+        <div id="loadingMessage" class="text-xl font-bold">Verbindung zur Datenbank herstellen...</div>
         <div id="authForms" style="display: none;">
             <div id="loginForm">
                 <h2>Anmelden</h2>
@@ -459,6 +459,7 @@
 
 
         async function startAppFlow() {
+            console.log("App-Start-Funktion aufgerufen.");
             if (!auth || !db) {
                 console.error("Firebase nicht initialisiert. App-Start nicht möglich.");
                 loadingMessage.textContent = "Fehler: Firebase-Konfiguration ungültig. Bitte überprüfen Sie Ihre Daten.";
@@ -698,21 +699,27 @@
                 if (multiplayerTimerId) clearInterval(multiplayerTimerId);
             }
 
+            console.log("onAuthStateChanged-Listener wird gesetzt.");
             onAuthStateChanged(auth, async (user) => {
+                console.log("Auth-State-Change erkannt. Benutzer:", user ? user.email || 'Anonym' : 'ausgeloggt');
                 if (user) {
                     userId = user.uid;
                     userEmail = user.email || 'Anonym';
                     userInfoDisplay.textContent = `Angemeldet als: ${userEmail}`;
+                    console.log("Authentifizierung erfolgreich. Zeige Modusauswahl an.");
                     showScreen('modeSelectContainer');
                     modeSelectInfo.textContent = `Willkommen, ${userEmail}!`;
 
                     const gameDocRef = doc(db, 'artifacts', appId, 'users', userId, 'gameData', 'progress');
                     try {
+                        console.log("Versuche, Höchststufe von der Datenbank zu laden...");
                         const docSnap = await getDoc(gameDocRef);
                         if (docSnap.exists()) {
                             highestLevel = docSnap.data().highestLevel;
+                            console.log(`Höchststufe erfolgreich geladen: Level ${highestLevel}.`);
                         } else {
                             await setDoc(gameDocRef, { highestLevel: 1 });
+                            console.log("Benutzerdaten nicht gefunden, neue Daten erstellt.");
                         }
                     } catch (error) {
                         console.error("Fehler beim Laden/Erstellen der Benutzerdaten:", error);
@@ -722,11 +729,13 @@
                     userId = null;
                     userEmail = null;
                     userInfoDisplay.textContent = '';
+                    console.log("Benutzer nicht angemeldet. Zeige Anmeldebildschirm an.");
                     showScreen('authContainer');
                     loadingMessage.style.display = 'none';
                     authForms.style.display = 'block';
 
                     if (!initialAuthToken) {
+                        console.log("Kein Initial-Token gefunden. Versuche anonyme Anmeldung.");
                         await signInAnonymously(auth)
                             .catch(e => console.error("Anonyme Anmeldung fehlgeschlagen:", e));
                     }
@@ -734,6 +743,7 @@
             });
         }
 
+        console.log("Versuche, Firebase zu initialisieren.");
         try {
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
@@ -1421,4 +1431,3 @@
     </script>
 </body>
 </html>
-
