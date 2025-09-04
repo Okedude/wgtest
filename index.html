@@ -6,413 +6,463 @@
     <title>Herr Winkelmann</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary: #8a2be2;
-            --secondary: #9370db;
-            --background: #f0eafb;
-            --surface: #ffffff;
-            --text: #333333;
-            --success: #4CAF50;
-            --danger: #ef4444;
-            --accent: #ffa500;
-        }
-
         body {
-            font-family: 'Inter', sans-serif;
-            color: var(--text);
-            background-color: var(--background);
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
+            background-color: #f0f0f0;
+            font-family: 'Roboto Mono', monospace;
+            color: #333;
             overflow: hidden;
-            transition: background-color 0.5s ease-in-out;
+            transition: background-color 2s ease-in-out;
             user-select: none;
         }
-
-        .screen-container {
-            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
-            opacity: 0;
-            transform: scale(0.95);
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 90%;
-            max-width: 450px;
-        }
-        
-        .screen-container.active {
-            opacity: 1;
-            transform: scale(1);
-            pointer-events: auto;
-        }
-
-        .auth-container, .mode-select-container, .multiplayer-container, .lobby-container {
-            background-color: var(--surface);
-            padding: 2.5rem;
-            border-radius: 1rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            width: 100%;
-        }
-
         .game-container {
-            display: none;
+            display: none; /* Initial hide */
             flex-direction: column;
             align-items: center;
-            padding: 1.5rem;
-            background-color: var(--surface);
-            border-radius: 1rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 900px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
         }
-
-        h2 {
-            font-size: 2rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-            color: var(--primary);
-        }
-        
-        .form-input {
-            width: 100%;
-            padding: 0.75rem;
-            margin-bottom: 1rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 0.5rem;
-            background-color: #f9fafb;
-            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        }
-        .form-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.2);
-        }
-        
-        .btn {
-            width: 100%;
-            padding: 0.75rem;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            border-radius: 0.5rem;
-            color: white;
-            background: linear-gradient(145deg, var(--secondary), var(--primary));
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
-        }
-        .btn:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
-        }
-
-        .btn-link {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 600;
-            transition: color 0.2s;
-        }
-        .btn-link:hover {
-            color: var(--secondary);
-        }
-        
-        .message-box {
-            background-color: #ffe4e4;
-            color: #cc0000;
-            border: 1px solid #ff9999;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1rem;
-        }
-        
         canvas {
             background-color: #a4d3ff;
-            border-radius: 0.75rem;
+            border-radius: 10px;
             box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.2);
             touch-action: none;
-            width: 100%;
-            height: auto;
-            aspect-ratio: 4 / 3;
         }
-
         .ui-panel {
-            width: 100%;
-            padding: 1rem;
-            background-color: #f9fafb;
-            border-radius: 0.75rem;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            margin-top: 1rem;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
             align-items: center;
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f8f8;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
-        
-        .stat-item {
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-bottom: 15px;
             text-align: center;
-            font-size: 1rem;
-            font-weight: 600;
         }
-        
+        .stat-item {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
         .progress-bar {
-            height: 1.25rem;
-            background-color: #e5e7eb;
-            border-radius: 9999px;
+            width: 80%;
+            height: 25px;
+            background-color: #ddd;
+            border-radius: 12px;
             overflow: hidden;
+            margin-top: 5px;
             box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
         }
-        
         .progress-bar-fill {
             height: 100%;
+            background: linear-gradient(90deg, #ff7e5f, #feb47b);
             transition: width 0.5s ease-out;
-            border-radius: 9999px;
         }
-        
+        #lungen-kapazitaet-bar {
+            background: linear-gradient(90deg, #4CAF50, #8bc34a);
+        }
         .info-message {
+            margin-top: 15px;
+            font-size: 1.2em;
             text-align: center;
-            font-style: italic;
-            font-weight: 400;
+            line-height: 1.4;
         }
-        
-        .dialogue-overlay, .level-select-overlay, .game-overlay {
-            position: fixed;
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(255, 0, 0, 0);
+            color: white;
+            font-size: 3em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+            opacity: 0;
+            visibility: hidden;
+            transition: background-color 2s, opacity 2s;
+            z-index: 1000;
+        }
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .win-overlay {
+            background-color: rgba(76, 175, 80, 0.7);
+        }
+        .button {
+            padding: 12px 24px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(145deg, #f8a141, #ff7e5f);
+            color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 20px;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+        }
+        .button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .level-info {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .level-progress-bar {
+            width: 100%;
+            height: 10px;
+            background-color: #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .level-progress-bar-fill {
+            height: 100%;
+            background-color: #f8a141;
+            transition: width 0.5s ease-out;
+        }
+        /* Dialogue box styles */
+        .dialogue-overlay {
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.6);
-            display: flex;
+            display: none;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s;
+            z-index: 2000;
         }
-        
-        .dialogue-overlay.active, .level-select-overlay.active, .game-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .dialogue-box, .level-select-box {
-            background-color: var(--surface);
-            padding: 2rem;
-            border-radius: 1rem;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        .dialogue-box {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             width: 90%;
             max-width: 500px;
             text-align: center;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 15px;
         }
-        
+        .dialogue-title {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .dialogue-text {
+            border: 2px solid #ddd;
+            padding: 15px;
+            border-radius: 10px;
+            min-height: 80px;
+            background-color: #f9f9f9;
+            text-align: left;
+            overflow-y: auto;
+            max-height: 200px;
+            line-height: 1.4;
+        }
+        .dialogue-input-container {
+            display: flex;
+            gap: 10px;
+        }
+        .dialogue-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 1em;
+        }
+        .dialogue-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #ff7e5f;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .dialogue-button:hover {
+            background: #feb47b;
+        }
+        .dialogue-close-button {
+            align-self: flex-end;
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #999;
+        }
+        .level-select-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+        .level-select-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            width: 90%;
+            max-width: 600px;
+            max-height: 90%;
+            overflow-y: auto;
+            text-align: center;
+        }
         .level-select-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
-            gap: 0.75rem;
-            margin-top: 1rem;
-            max-height: 50vh;
-            overflow-y: auto;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
         }
-        
         .level-button {
-            padding: 1rem;
-            font-weight: 600;
-            background-color: #f3f4f6;
-            border: 2px solid #e5e7eb;
-            border-radius: 0.5rem;
+            padding: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background-color: #f0f0f0;
             cursor: pointer;
             transition: background-color 0.2s, border-color 0.2s;
             position: relative;
         }
         .level-button:hover:not(:disabled) {
-            background-color: #e5e7eb;
-            border-color: var(--primary);
+            background-color: #e0e0e0;
+            border-color: #ff7e5f;
         }
         .level-button:disabled {
-            opacity: 0.6;
+            opacity: 0.5;
             cursor: not-allowed;
-            background-color: #d1d5db;
+            background-color: #ccc;
+        }
+        .level-button .lock-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            fill: #666;
+            transition: transform 0.3s ease-in-out;
+            opacity: 1;
+        }
+        .level-button.unlocked .lock-icon {
+            animation: unlock-fade 0.5s ease-in-out forwards;
+            opacity: 0;
+        }
+        @keyframes unlock-fade {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.5);
+                opacity: 0;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0;
+            }
         }
 
-        .lobby-container p {
-            font-size: 1.125rem;
-            margin-bottom: 1.5rem;
-            font-weight: 600;
+        /* --- Login/Registration UI --- */
+        .auth-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
         }
-        
-        .player-list {
-            margin-top: 1rem;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #e5e7eb;
-            border-radius: 0.5rem;
-            padding: 0.5rem;
+        .auth-container h2 {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 20px;
         }
-
-        .player-list-item {
-            padding: 0.5rem;
-            background-color: #f9fafb;
-            border-radius: 0.375rem;
-            margin-bottom: 0.25rem;
-            font-weight: 400;
-            word-wrap: break-word;
+        .auth-container input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 1em;
+            transition: border-color 0.2s;
+        }
+        .auth-container input:focus {
+            outline: none;
+            border-color: #ff7e5f;
+        }
+        .auth-container button {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(145deg, #f8a141, #ff7e5f);
+            color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .auth-container button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+        }
+        .auth-container p {
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        .auth-container a {
+            color: #ff7e5f;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        #userInfo {
+            font-size: 1em;
+            text-align: center;
+            margin-bottom: 10px;
         }
     </style>
 </head>
-<body class="bg-background">
-    <div id="authContainer" class="screen-container active">
-        <div id="loadingMessage" class="text-xl font-bold">Verbindung zur Datenbank herstellen...</div>
+<body>
+    <div class="auth-container" id="authContainer">
+        <div id="loadingMessage">Lade Spiel...</div>
         <div id="authForms" style="display: none;">
             <div id="loginForm">
                 <h2>Anmelden</h2>
-                <input type="email" id="loginEmail" placeholder="E-Mail" class="form-input">
-                <input type="password" id="loginPassword" placeholder="Passwort" class="form-input">
-                <button id="loginButton" class="btn">Anmelden</button>
-                <p class="mt-4 text-sm">Noch kein Konto? <a href="#" id="showRegister" class="btn-link">Jetzt registrieren</a></p>
-                <div id="authError" class="message-box" style="display: none;"></div>
+                <input type="email" id="loginEmail" placeholder="E-Mail">
+                <input type="password" id="loginPassword" placeholder="Passwort">
+                <button id="loginButton">Anmelden</button>
+                <p>Noch kein Konto? <a href="#" id="showRegister">Jetzt registrieren</a></p>
+                <p id="authError" style="color: red;"></p>
             </div>
             <div id="registerForm" style="display: none;">
                 <h2>Registrieren</h2>
-                <input type="email" id="registerEmail" placeholder="E-Mail" class="form-input">
-                <input type="password" id="registerPassword" placeholder="Passwort" class="form-input">
-                <button id="registerButton" class="btn">Registrieren</button>
-                <p class="mt-4 text-sm">Bereits ein Konto? <a href="#" id="showLogin" class="btn-link">Zurück zur Anmeldung</a></p>
-                <div id="registerError" class="message-box" style="display: none;"></div>
+                <input type="email" id="registerEmail" placeholder="E-Mail">
+                <input type="password" id="registerPassword" placeholder="Passwort">
+                <button id="registerButton">Registrieren</button>
+                <p>Bereits ein Konto? <a href="#" id="showLogin">Zurück zur Anmeldung</a></p>
+                <p id="registerError" style="color: red;"></p>
             </div>
         </div>
     </div>
-    
-    <div id="modeSelectContainer" class="screen-container">
-        <div class="mode-select-container">
-            <h2 class="mb-4">Wählen Sie einen Modus</h2>
-            <p id="modeSelectInfo" class="text-gray-600 mb-6"></p>
-            <button id="singlePlayerButton" class="btn mb-4">Einzelspieler</button>
-            <button id="multiplayerButton" class="btn mb-4">Mehrspieler</button>
-            <button id="logoutButton" class="btn bg-gray-400 hover:bg-gray-500">Abmelden</button>
-        </div>
-    </div>
 
-    <div id="multiplayerContainer" class="screen-container">
-        <div class="multiplayer-container">
-            <h2 class="mb-4">Mehrspieler-Modus</h2>
-            <p class="text-gray-600 mb-6">Tragen Sie einen Lobby-Code ein oder erstellen Sie eine neue Lobby.</p>
-            <input type="text" id="joinLobbyCode" placeholder="Lobby-Code eingeben" class="form-input text-center uppercase tracking-widest font-bold">
-            <button id="joinLobbyButton" class="btn mb-4">Beitreten</button>
-            <p class="my-4 font-bold text-gray-400">ODER</p>
-            <button id="createLobbyButton" class="btn">Lobby erstellen</button>
-            <div id="multiplayerMessage" class="message-box" style="display: none;"></div>
-            <button id="multiplayerBackButton" class="btn mt-6 bg-gray-400 hover:bg-gray-500">Zurück</button>
-        </div>
-    </div>
-
-    <div id="lobbyContainer" class="screen-container">
-        <div class="lobby-container">
-            <h2 id="lobbyTitle" class="mb-2"></h2>
-            <p class="text-sm text-gray-500">Lobby-Code zum Teilen:</p>
-            <p id="lobbyCodeDisplay" class="text-3xl font-extrabold tracking-widest text-primary mb-4"></p>
-            <p class="text-gray-600 mb-2">Warten auf andere Spieler...</p>
-            <div class="player-list" id="playerList"></div>
-            <div id="lobbyStatusMessage" class="message-box text-sm text-success" style="display: none; background-color: #e8f5e9;"></div>
-            <button id="startGameButton" class="btn mt-6" style="display: none;">Spiel starten</button>
-            <button id="leaveLobbyButton" class="btn mt-2 bg-red-400 hover:bg-red-500">Lobby verlassen</button>
-        </div>
-    </div>
-
-    <div id="gameContainer" class="game-container">
-        <div id="userInfo" class="text-sm text-gray-500 mb-2"></div>
-        <canvas id="gameCanvas" class="w-full h-auto aspect-w-4 aspect-h-3"></canvas>
+    <div class="game-container" id="gameContainer">
+        <div id="userInfo"></div>
+        <div class="level-info" id="level-info">Level 1</div>
+        <canvas id="gameCanvas"></canvas>
         <div class="ui-panel">
-            <div class="flex justify-around w-full gap-4">
-                <div class="stat-item flex-1">
+            <div class="stats-container">
+                <div class="stat-item">
                     Lungenkapazität<br>
-                    <span id="lungen-kapazitaet-text" class="font-extrabold text-lg">100%</span>
-                    <div class="progress-bar w-full mt-1">
-                        <div class="progress-bar-fill h-full bg-green-500" id="lungen-kapazitaet-bar"></div>
+                    <span id="lungen-kapazitaet-text">100%</span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" id="lungen-kapazitaet-bar"></div>
                     </div>
                 </div>
-                <div class="stat-item flex-1">
+                <div class="stat-item">
                     Stiele gesammelt<br>
-                    <span id="stiele-counter" class="font-extrabold text-lg">0 / 5</span>
-                </div>
-                <div class="stat-item flex-1" id="multiplayerTimerDisplay" style="display: none;">
-                    Zeit verbleibend<br>
-                    <span id="gameTimer" class="font-extrabold text-lg">3:00</span>
+                    <span id="stiele-counter">0 / 5</span>
                 </div>
             </div>
-            <div class="info-message text-sm text-gray-500">Bewegen Sie sich mit den Pfeiltasten oder WASD. Sammeln Sie alle Stiele, um das Level zu beenden.</div>
-            <div class="flex flex-col sm:flex-row gap-2 mt-2 w-full max-w-sm">
-                <button class="btn" id="openDialogueButton">Lass uns reden!</button>
-                <button class="btn" id="openLevelSelectButton">Level-Auswahl</button>
+            <div class="info-message" id="info-message">Bewegen Sie sich mit den Pfeiltasten oder WASD. Sammeln Sie alle Stiele, um das Level zu beenden.</div>
+            <div style="display: flex; gap: 10px;">
+                <button class="button" id="openDialogueButton">✨ Lass uns reden!</button>
+                <button class="button" id="openLevelSelectButton">Level-Auswahl</button>
+                <button class="button" id="logoutButton">Abmelden</button>
             </div>
-            <button id="returnToModeSelectButton" class="btn mt-2 w-full max-w-sm bg-gray-400 hover:bg-gray-500" style="display: none;">Modus wechseln</button>
         </div>
     </div>
-    
-    <div id="gameOverlay" class="game-overlay">
-        <div class="bg-white p-8 rounded-xl shadow-2xl text-center flex flex-col items-center">
-            <h3 id="overlay-text" class="text-3xl font-extrabold mb-4"></h3>
-            <button id="overlay-close-button" class="btn mt-4">OK</button>
-        </div>
+    <div class="overlay" id="overlay">
+        <span id="overlay-text"></span>
     </div>
 
     <!-- Dialogue UI -->
-    <div id="dialogueOverlay" class="dialogue-overlay">
+    <div class="dialogue-overlay" id="dialogueOverlay">
         <div class="dialogue-box">
-            <div class="flex justify-between items-center">
-                <div class="dialogue-title">Herr Winkelmann sagt...</div>
-                <button id="closeDialogueButton" class="text-2xl font-bold text-gray-500">&times;</button>
-            </div>
-            <div id="dialogueText" class="dialogue-text bg-gray-50 p-4 rounded-lg text-left text-sm border border-gray-200">
-                Fragen Sie mich alles, aber bitte nicht, wie viele Stiele ich noch brauche... Bin schon ganz aus der Puste!
-            </div>
-            <div class="flex gap-2">
-                <input type="text" id="dialogueInput" class="form-input flex-1" placeholder="Stellen Sie eine Frage...">
-                <button id="sendDialogueButton" class="btn w-1/4">Senden</button>
+            <button class="dialogue-close-button" id="closeDialogueButton">&times;</button>
+            <div class="dialogue-title">Herr Winkelmann sagt...</div>
+            <div class="dialogue-text" id="dialogueText">Fragen Sie mich alles, aber bitte nicht, wie viele Stiele ich noch brauche... Bin schon ganz aus der Puste!</div>
+            <div class="dialogue-input-container">
+                <input type="text" id="dialogueInput" class="dialogue-input" placeholder="Stellen Sie eine Frage...">
+                <button class="dialogue-button" id="sendDialogueButton">Senden</button>
             </div>
         </div>
     </div>
 
     <!-- Level Select UI -->
-    <div id="levelSelectOverlay" class="level-select-overlay">
-        <div class="level-select-box">
-            <h3 class="dialogue-title">Wähle ein Level</h3>
-            <div id="levelSelectGrid" class="level-select-grid"></div>
-            <button id="closeLevelSelectButton" class="btn mt-4">Schließen</button>
+    <div class="level-select-overlay" id="levelSelectOverlay">
+        <div class="level-select-container">
+            <div class="dialogue-title">Wähle ein Level</div>
+            <div class="level-select-grid" id="levelSelectGrid"></div>
+            <button class="button" style="margin-top: 20px;" id="closeLevelSelectButton">Schließen</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, runTransaction, updateDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, linkWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase-Konfiguration (Bitte ersetzen Sie die Platzhalter durch Ihre eigenen Daten)
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : null);
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // WICHTIG: Ersetzen Sie die Platzhalter unten durch Ihre eigenen Firebase-Projektdaten
+        // Eine Anleitung dazu finden Sie in der Konversation.
+        const firebaseConfig = {
+          apiKey: "AIzaSyCoP3TRsVluxrVXVxeZ_lJfeOyqrNbbGa0",
+          authDomain: "winkelmanngame.firebaseapp.com",
+          projectId: "winkelmanngame",
+          storageBucket: "winkelmanngame.firebasestorage.app",
+          messagingSenderId: "1012811950512",
+          appId: "1:1012811950512:web:61d506f84c217eb156ce75",
+          measurementId: "G-FDH9FT3QYR"
+        };
+        const initialAuthToken = null;
+        const appId = firebaseConfig.appId;
 
         let app, db, auth;
         let highestLevel = 1;
         let userId;
-        let userEmail;
-        let gameMode = 'singleplayer';
-        let multiplayerLobbyCode = null;
-        let multiplayerTimerId = null;
 
-        // UI-Element-Referenzen
+        // UI element references
         const authContainer = document.getElementById('authContainer');
         const authForms = document.getElementById('authForms');
         const loadingMessage = document.getElementById('loadingMessage');
@@ -432,340 +482,136 @@
         const userInfoDisplay = document.getElementById('userInfo');
         const logoutButton = document.getElementById('logoutButton');
 
-        const modeSelectContainer = document.getElementById('modeSelectContainer');
-        const modeSelectInfo = document.getElementById('modeSelectInfo');
-        const singlePlayerButton = document.getElementById('singlePlayerButton');
-        const multiplayerButton = document.getElementById('multiplayerButton');
-        const multiplayerContainer = document.getElementById('multiplayerContainer');
-        const joinLobbyCodeInput = document.getElementById('joinLobbyCode');
-        const joinLobbyButton = document.getElementById('joinLobbyButton');
-        const createLobbyButton = document.getElementById('createLobbyButton');
-        const multiplayerMessage = document.getElementById('multiplayerMessage');
-        const multiplayerBackButton = document.getElementById('multiplayerBackButton');
-        const lobbyContainer = document.getElementById('lobbyContainer');
-        const lobbyTitle = document.getElementById('lobbyTitle');
-        const lobbyCodeDisplay = document.getElementById('lobbyCodeDisplay');
-        const playerList = document.getElementById('playerList');
-        const lobbyStatusMessage = document.getElementById('lobbyStatusMessage');
-        const startGameButton = document.getElementById('startGameButton');
-        const leaveLobbyButton = document.getElementById('leaveLobbyButton');
-        const multiplayerTimerDisplay = document.getElementById('multiplayerTimerDisplay');
-        const gameTimerDisplay = document.getElementById('gameTimer');
-        const returnToModeSelectButton = document.getElementById('returnToModeSelectButton');
-        
-        const gameOverlay = document.getElementById('gameOverlay');
-        const overlayText = document.getElementById('overlay-text');
-        const overlayCloseButton = document.getElementById('overlay-close-button');
-
-
+        // Main application flow, to be called after Firebase init
         async function startAppFlow() {
-            console.log("App-Start-Funktion aufgerufen.");
+            // Check if Firebase was initialized successfully
             if (!auth || !db) {
-                console.error("Firebase nicht initialisiert. App-Start nicht möglich.");
+                console.error("Firebase not initialized. Cannot start app flow.");
                 loadingMessage.textContent = "Fehler: Firebase-Konfiguration ungültig. Bitte überprüfen Sie Ihre Daten.";
                 return;
             }
 
-            const showScreen = (screenId) => {
-                const screens = document.querySelectorAll('.screen-container, .game-container');
-                screens.forEach(screen => {
-                    screen.classList.remove('active');
-                    screen.style.display = 'none';
-                });
-                const screen = document.getElementById(screenId);
-                if (screen) {
-                    screen.style.display = 'flex';
-                    setTimeout(() => screen.classList.add('active'), 10);
-                }
-            };
-            
+            // Authentication Event Listeners
             showRegisterLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 loginForm.style.display = 'none';
                 registerForm.style.display = 'block';
-                authError.style.display = 'none';
+                authError.textContent = '';
             });
 
             showLoginLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 loginForm.style.display = 'block';
                 registerForm.style.display = 'none';
-                registerError.style.display = 'none';
+                registerError.textContent = '';
             });
 
-            const handleAuth = async (isLogin) => {
-                const emailInput = isLogin ? loginEmailInput : registerEmailInput;
-                const passwordInput = isLogin ? loginPasswordInput : registerPasswordInput;
-                const errorElement = isLogin ? authError : registerError;
-                const button = isLogin ? loginButton : registerButton;
-                
-                errorElement.textContent = '';
-                errorElement.style.display = 'none';
-                button.disabled = true;
-
+            loginButton.addEventListener('click', async () => {
+                const email = loginEmailInput.value;
+                const password = loginPasswordInput.value;
+                authError.textContent = '';
                 try {
-                    if (isLogin) {
-                        await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
-                    } else {
-                        await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
-                    }
+                    await signInWithEmailAndPassword(auth, email, password);
                 } catch (error) {
-                    let message = 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.';
-                    if (error.code === 'auth/email-already-in-use') {
-                        message = 'Diese E-Mail-Adresse wird bereits verwendet.';
-                    } else if (error.code === 'auth/invalid-email') {
-                        message = 'Ungültige E-Mail-Adresse.';
-                    } else if (error.code === 'auth/weak-password') {
-                        message = 'Das Passwort sollte mindestens 6 Zeichen lang sein.';
-                    } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                        message = 'Ungültige E-Mail oder Passwort.';
-                    }
-                    errorElement.textContent = message;
-                    errorElement.style.display = 'block';
-                    console.error("Authentication failed:", error);
-                } finally {
-                    button.disabled = false;
+                    authError.textContent = 'Login fehlgeschlagen. Bitte überprüfen Sie E-Mail und Passwort.';
+                    console.error("Login failed:", error);
                 }
-            };
+            });
 
-            loginButton.addEventListener('click', () => handleAuth(true));
-            registerButton.addEventListener('click', () => handleAuth(false));
+            registerButton.addEventListener('click', async () => {
+                const email = registerEmailInput.value;
+                const password = registerPasswordInput.value;
+                registerError.textContent = '';
+                try {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                } catch (error) {
+                    if (error.code === 'auth/email-already-in-use') {
+                        registerError.textContent = 'Diese E-Mail-Adresse wird bereits verwendet.';
+                    } else {
+                        registerError.textContent = 'Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.';
+                    }
+                    console.error("Registration failed:", error);
+                }
+            });
+
             logoutButton.addEventListener('click', async () => {
                 try {
                     await signOut(auth);
                 } catch (error) {
-                    console.error("Abmelden fehlgeschlagen:", error);
+                    console.error("Logout failed:", error);
                 }
             });
             
-            singlePlayerButton.addEventListener('click', () => {
-                gameMode = 'singleplayer';
-                showScreen('gameContainer');
-                multiplayerTimerDisplay.style.display = 'none';
-                returnToModeSelectButton.style.display = 'block';
-                openLevelSelectButton.style.display = 'block';
-                openDialogueButton.style.display = 'block';
-                initializeGame();
-            });
-
-            multiplayerButton.addEventListener('click', () => {
-                gameMode = 'multiplayer';
-                showScreen('multiplayerContainer');
-            });
-            
-            multiplayerBackButton.addEventListener('click', () => showScreen('modeSelectContainer'));
-            returnToModeSelectButton.addEventListener('click', () => {
-                if (playerStateUnsubscribe) playerStateUnsubscribe();
-                showScreen('modeSelectContainer');
-            });
-
-            createLobbyButton.addEventListener('click', async () => {
-                multiplayerMessage.style.display = 'none';
-                const lobbyCode = generateLobbyCode();
-                try {
-                    const lobbyDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', lobbyCode);
-                    await setDoc(lobbyDocRef, {
-                        hostId: userId,
-                        players: [{ userId: userId, email: userEmail, stieleCount: 0 }],
-                        gameActive: false,
-                        gameStartTime: null,
-                        stiele: []
-                    });
-                    multiplayerLobbyCode = lobbyCode;
-                    setupLobbyListener(lobbyCode);
-                    showScreen('lobbyContainer');
-                } catch (e) {
-                    multiplayerMessage.textContent = "Lobby konnte nicht erstellt werden. Bitte versuchen Sie es erneut.";
-                    multiplayerMessage.style.display = 'block';
-                    console.error("Fehler beim Erstellen der Lobby:", e);
-                }
-            });
-
-            joinLobbyButton.addEventListener('click', async () => {
-                multiplayerMessage.style.display = 'none';
-                const lobbyCode = joinLobbyCodeInput.value.trim().toUpperCase();
-                if (lobbyCode.length !== 6) {
-                    multiplayerMessage.textContent = "Ungültiger Lobby-Code.";
-                    multiplayerMessage.style.display = 'block';
-                    return;
-                }
-                try {
-                    const lobbyDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', lobbyCode);
-                    const lobbyDoc = await getDoc(lobbyDocRef);
-                    if (!lobbyDoc.exists()) {
-                        multiplayerMessage.textContent = "Lobby nicht gefunden.";
-                        multiplayerMessage.style.display = 'block';
-                        return;
-                    }
-
-                    const lobbyData = lobbyDoc.data();
-                    if (lobbyData.gameActive) {
-                        multiplayerMessage.textContent = "Spiel in dieser Lobby ist bereits aktiv.";
-                        multiplayerMessage.style.display = 'block';
-                        return;
-                    }
-
-                    await updateDoc(lobbyDocRef, {
-                        players: [...lobbyData.players, { userId: userId, email: userEmail, stieleCount: 0 }]
-                    });
-
-                    multiplayerLobbyCode = lobbyCode;
-                    setupLobbyListener(lobbyCode);
-                    showScreen('lobbyContainer');
-                } catch (e) {
-                    multiplayerMessage.textContent = "Lobby konnte nicht beigetreten werden. Bitte versuchen Sie es erneut.";
-                    multiplayerMessage.style.display = 'block';
-                    console.error("Fehler beim Beitritt zur Lobby:", e);
-                }
-            });
-
-            startGameButton.addEventListener('click', async () => {
-                const lobbyDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', multiplayerLobbyCode);
-                try {
-                    await setDoc(lobbyDocRef, { gameActive: true, gameStartTime: Date.now() }, { merge: true });
-                } catch (e) {
-                    console.error("Fehler beim Starten des Spiels:", e);
-                }
-            });
-
-            leaveLobbyButton.addEventListener('click', async () => {
-                if (multiplayerLobbyCode) {
-                    const lobbyDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', multiplayerLobbyCode);
-                    try {
-                        const lobbyDoc = await getDoc(lobbyDocRef);
-                        if (lobbyDoc.exists()) {
-                            const lobbyData = lobbyDoc.data();
-                            const updatedPlayers = lobbyData.players.filter(p => p.userId !== userId);
-                            if (updatedPlayers.length > 0) {
-                                await updateDoc(lobbyDocRef, { players: updatedPlayers });
-                            } else {
-                                await deleteDoc(lobbyDocRef);
-                            }
-                        }
-                    } catch (e) {
-                        console.error("Fehler beim Verlassen der Lobby:", e);
-                    }
-                    resetMultiplayerState();
-                }
-            });
-
-            function generateLobbyCode() {
-                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-                let result = '';
-                for (let i = 0; i < 6; i++) {
-                    result += chars.charAt(Math.floor(Math.random() * chars.length));
-                }
-                return result;
-            }
-
-            let lobbyUnsubscribe = null;
-            function setupLobbyListener(code) {
-                if (lobbyUnsubscribe) lobbyUnsubscribe();
-                const lobbyDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', code);
-                lobbyUnsubscribe = onSnapshot(lobbyDocRef, (doc) => {
-                    const lobbyData = doc.data();
-                    if (!lobbyData) {
-                        multiplayerMessage.textContent = "Lobby wurde aufgelöst.";
-                        multiplayerMessage.style.display = 'block';
-                        resetMultiplayerState();
-                        return;
-                    }
-
-                    lobbyCodeDisplay.textContent = code;
-                    playerList.innerHTML = lobbyData.players.map(p => `<div class="player-list-item">${p.email}</div>`).join('');
-                    
-                    if (lobbyData.hostId === userId) {
-                        startGameButton.style.display = lobbyData.players.length >= 1 ? 'block' : 'none';
-                        lobbyTitle.textContent = "Ihre Lobby";
-                        lobbyStatusMessage.textContent = "Teilen Sie diesen Code, um Freunde einzuladen!";
-                        lobbyStatusMessage.style.display = 'block';
-                    } else {
-                        startGameButton.style.display = 'none';
-                        lobbyTitle.textContent = "Lobby beigetreten";
-                        lobbyStatusMessage.textContent = "Warten auf den Host, um das Spiel zu starten...";
-                        lobbyStatusMessage.style.display = 'block';
-                    }
-
-                    if (lobbyData.gameActive) {
-                         showScreen('gameContainer');
-                         initializeGame(lobbyData);
-                    }
-                });
-            }
-
-            function resetMultiplayerState() {
-                multiplayerLobbyCode = null;
-                showScreen('multiplayerContainer');
-                if (multiplayerTimerId) clearInterval(multiplayerTimerId);
-            }
-
-            console.log("onAuthStateChanged-Listener wird gesetzt.");
+            // Main Auth State Listener
             onAuthStateChanged(auth, async (user) => {
-                console.log("Auth-State-Change erkannt. Benutzer:", user ? user.email || 'Anonym' : 'ausgeloggt');
                 if (user) {
+                    // User is signed in. This is triggered after anonymous sign-in or email/password sign-in.
                     userId = user.uid;
-                    userEmail = user.email || 'Anonym';
-                    userInfoDisplay.textContent = `Angemeldet als: ${userEmail}`;
-                    console.log("Authentifizierung erfolgreich. Zeige Modusauswahl an.");
-                    showScreen('modeSelectContainer');
-                    modeSelectInfo.textContent = `Willkommen, ${userEmail}!`;
-
+                    userInfoDisplay.textContent = `Angemeldet als: ${user.email || 'Anonym'}`;
+                    authContainer.style.display = 'none';
+                    gameContainer.style.display = 'flex';
+                    
+                    // Fetch highest level from Firestore
                     const gameDocRef = doc(db, 'artifacts', appId, 'users', userId, 'gameData', 'progress');
                     try {
-                        console.log("Versuche, Höchststufe von der Datenbank zu laden...");
                         const docSnap = await getDoc(gameDocRef);
                         if (docSnap.exists()) {
                             highestLevel = docSnap.data().highestLevel;
-                            console.log(`Höchststufe erfolgreich geladen: Level ${highestLevel}.`);
+                            console.log("Progress loaded from Firestore. Highest level:", highestLevel);
                         } else {
+                            // Create a new document if it doesn't exist
                             await setDoc(gameDocRef, { highestLevel: 1 });
-                            console.log("Benutzerdaten nicht gefunden, neue Daten erstellt.");
+                            console.log("New progress document created.");
                         }
                     } catch (error) {
-                        console.error("Fehler beim Laden/Erstellen der Benutzerdaten:", error);
-                        // Even if data loading fails, the user can still play from level 1.
+                        console.error("Error fetching or creating user data:", error);
                     }
+
+                    initializeGame();
+                    
                 } else {
-                    userId = null;
-                    userEmail = null;
+                    // User is signed out.
                     userInfoDisplay.textContent = '';
-                    console.log("Benutzer nicht angemeldet. Zeige Anmeldebildschirm an.");
-                    showScreen('authContainer');
+                    authContainer.style.display = 'flex';
+                    gameContainer.style.display = 'none';
+                    console.log("User logged out.");
+                    
+                    // Show auth forms and hide loading message
                     loadingMessage.style.display = 'none';
                     authForms.style.display = 'block';
 
-                    if (!initialAuthToken) {
-                        console.log("Kein Initial-Token gefunden. Versuche anonyme Anmeldung.");
-                        await signInAnonymously(auth)
-                            .catch(e => console.error("Anonyme Anmeldung fehlgeschlagen:", e));
+                    // For github.io, we need to sign in anonymously on load
+                    if (initialAuthToken === null) {
+                        signInAnonymously(auth)
+                            .then(() => console.log("Signed in anonymously."))
+                            .catch(e => console.error("Firebase anonymous sign-in failed:", e));
                     }
                 }
             });
+
+            // Initial sign-in attempt
+            if (initialAuthToken) {
+                 // Removed custom token login for github.io
+            } else {
+                signInAnonymously(auth)
+                    .then(() => console.log("Signed in anonymously."))
+                    .catch(e => console.error("Firebase anonymous sign-in failed:", e));
+            }
         }
 
-        console.log("Versuche, Firebase zu initialisieren.");
-        try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-            console.log("Firebase initialisiert.");
-            startAppFlow();
-        } catch (e) {
-            console.error("Firebase-Initialisierung fehlgeschlagen. Bitte überprüfen Sie die Konfiguration.", e);
-            loadingMessage.textContent = "Fehler: Verbindung zur Datenbank fehlgeschlagen. Bitte versuchen Sie es später erneut.";
-            loadingMessage.style.color = "var(--danger)";
-            loadingMessage.style.fontWeight = "bold";
-        }
-
-
-        async function initializeGame(lobbyData = null) {
+        // The entire game logic, wrapped in a function to be called after auth state is determined
+        async function initializeGame() {
             const canvas = document.getElementById('gameCanvas');
             const ctx = canvas.getContext('2d');
+            const overlay = document.getElementById('overlay');
+            const overlayText = document.getElementById('overlay-text');
             const lungenKapazitaetBar = document.getElementById('lungen-kapazitaet-bar');
             const lungenKapazitaetText = document.getElementById('lungen-kapazitaet-text');
             const stieleCounterText = document.getElementById('stiele-counter');
             const infoMessage = document.getElementById('info-message');
-
+            const levelInfo = document.getElementById('level-info');
+            
+            // UI elements
             const openDialogueButton = document.getElementById('openDialogueButton');
             const dialogueOverlay = document.getElementById('dialogueOverlay');
             const dialogueText = document.getElementById('dialogueText');
@@ -784,33 +630,18 @@
             let gameData = { level: 1 };
             let isSpeaking = false;
             let lowLungsWarning = false;
-            let playerStateUnsubscribe = null;
 
             const baseSpeed = 250;
             const maxLungenKapazitaet = 100;
             const TOTAL_LEVELS = 50;
-            const MULTIPLAYER_DURATION = 180;
-            const MULTIPLAYER_REQUIRED_STIELE = 500;
 
-            function showOverlay(text, isWin) {
-                overlayText.textContent = text;
-                gameOverlay.style.backgroundColor = isWin ? 'rgba(76, 175, 80, 0.7)' : 'rgba(255, 0, 0, 0.7)';
-                gameOverlay.classList.add('active');
-            }
-
-            overlayCloseButton.addEventListener('click', () => {
-                gameOverlay.classList.remove('active');
-            });
-            
             function getNonOverlappingPosition(existingObjects, width, height) {
                 let newPos, overlapping;
-                const safetyCounter = 100;
-                let attempts = 0;
                 do {
                     overlapping = false;
                     newPos = {
-                        x: Math.random() * (canvas.width - width),
-                        y: Math.random() * (canvas.height - height),
+                        x: Math.random() * (canvas.width - width) + width / 2,
+                        y: Math.random() * (canvas.height - height) + height / 2,
                         width: width,
                         height: height
                     };
@@ -826,13 +657,13 @@
                             break;
                         }
                     }
-                    attempts++;
-                } while (overlapping && attempts < safetyCounter);
+                } while (overlapping);
                 return newPos;
             }
 
+            // --- Gemini TTS API Integration ---
             const TTS_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=";
-            const API_KEY = "";
+            const API_KEY = ""; // Die API-Schlüssel für Gemini werden in dieser Umgebung von der Plattform bereitgestellt.
 
             async function speak(text, voiceName = "Kore") {
                 if (isSpeaking) return;
@@ -858,7 +689,10 @@
                         body: JSON.stringify(payload)
                     });
 
-                    if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+                    if (!response.ok) {
+                        throw new Error(`API error: ${response.statusText}`);
+                    }
+
                     const result = await response.json();
                     const part = result?.candidates?.[0]?.content?.parts?.[0];
                     const audioData = part?.inlineData?.data;
@@ -870,14 +704,18 @@
                         const pcm16 = new Int16Array(pcmData);
                         const wavBlob = pcmToWav(pcm16, sampleRate);
                         const audioUrl = URL.createObjectURL(wavBlob);
+
                         const audio = new Audio(audioUrl);
                         audio.play();
-                        audio.onended = () => { URL.revokeObjectURL(audioUrl); isSpeaking = false; };
+                        audio.onended = () => {
+                            URL.revokeObjectURL(audioUrl);
+                            isSpeaking = false;
+                        };
                     } else {
-                        throw new Error("Ungültige Audiodaten von der API");
+                        throw new Error("Invalid audio data from API");
                     }
                 } catch (error) {
-                    console.error("Sprachausgabe fehlgeschlagen:", error);
+                    console.error("Failed to generate speech:", error);
                     isSpeaking = false;
                 }
             }
@@ -897,20 +735,26 @@
                 const bytesPerSample = 2;
                 const blockAlign = numChannels * bytesPerSample;
                 const byteRate = sampleRate * blockAlign;
+
                 const wavHeader = new ArrayBuffer(44);
                 const view = new DataView(wavHeader);
 
+                // RIFF chunk
                 writeString(view, 0, 'RIFF');
-                view.setUint32(4, 36 + pcmData.byteLength, true);
+                view.setUint32(4, 36 + pcmData.byteLength, true); // ChunkSize
                 writeString(view, 8, 'WAVE');
+
+                // fmt chunk
                 writeString(view, 12, 'fmt ');
-                view.setUint32(16, 16, true);
-                view.setUint16(20, 1, true);
+                view.setUint32(16, 16, true); // Subchunk1Size
+                view.setUint16(20, 1, true); // AudioFormat (1=PCM)
                 view.setUint16(22, numChannels, true);
                 view.setUint32(24, sampleRate, true);
                 view.setUint32(28, byteRate, true);
                 view.setUint16(32, blockAlign, true);
-                view.setUint16(34, 16, true);
+                view.setUint16(34, 16, true); // BitsPerSample
+
+                // data chunk
                 writeString(view, 36, 'data');
                 view.setUint32(40, pcmData.byteLength, true);
 
@@ -923,9 +767,10 @@
                     view.setUint8(offset + i, string.charCodeAt(i));
                 }
             }
-            
+            // --- End of Gemini TTS API Integration ---
+
+            // --- Gemini LLM Dialogue Integration ---
             const LLM_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=";
-            const API_KEY = "";
             const systemPrompt = `Du bist Herr Winkelmann, ein sehr höflicher, leicht außer Atem geratener Mann, der damit beschäftigt ist, Stiele einzusammeln. Antworte immer kurz, freundlich und in der Ich-Form. Deine Antworten sollten widerspiegeln, dass du dich gerade anstrengst, aber fest entschlossen bist. Beziehe dich auf deine aktuelle Aufgabe, wenn es passt. Du bist ein einfacher Mann. Vermeide übermäßig komplexe Sprache.`;
             let isGeneratingResponse = false;
 
@@ -948,7 +793,10 @@
                         body: JSON.stringify(payload)
                     });
 
-                    if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+                    if (!response.ok) {
+                        throw new Error(`API error: ${response.statusText}`);
+                    }
+
                     const result = await response.json();
                     const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
 
@@ -956,10 +804,10 @@
                         dialogueText.textContent = text;
                         await speak(text, "Leda");
                     } else {
-                        throw new Error("Ungültige Antwort von der LLM API");
+                        throw new Error("Invalid response from LLM API");
                     }
                 } catch (error) {
-                    console.error("Generierung des Dialogs fehlgeschlagen:", error);
+                    console.error("Failed to generate dialogue:", error);
                     dialogueText.textContent = "Huch, etwas ist schiefgelaufen. Ich kann jetzt nicht reden.";
                 } finally {
                     isGeneratingResponse = false;
@@ -967,6 +815,7 @@
                     dialogueInput.disabled = false;
                 }
             }
+            // --- End of Gemini LLM Dialogue Integration ---
 
             async function saveHighestLevel(level) {
                 if (level > highestLevel) {
@@ -987,13 +836,12 @@
             }
 
             class GameObject {
-                constructor(x, y, width, height, color, id = null) {
+                constructor(x, y, width, height, color) {
                     this.x = x;
                     this.y = y;
                     this.width = width;
                     this.height = height;
                     this.color = color;
-                    this.id = id;
                 }
                 draw() {
                     ctx.fillStyle = this.color;
@@ -1001,13 +849,14 @@
                 }
             }
             
+            // Function to get level settings dynamically
             function getLevelSettings(level) {
                 return {
-                    requiredStiele: Math.min(50, 5 + Math.floor(level * 1.5)),
+                    requiredStiele: Math.min(100, 10 + Math.floor(level * 2)),
                     initialStiele: 5,
-                    obstacles: Math.min(20, Math.floor((level - 1) / 3) + 1),
-                    lungenDrainRate: 1 + (level - 1) * 0.1,
-                    lungLossOnHit: 15,
+                    obstacles: Math.min(30, Math.floor((level) / 2) + 2),
+                    lungenDrainRate: 1.5 + (level - 1) * 0.2,
+                    lungLossOnHit: 15 + (level - 1) * 2,
                 };
             }
 
@@ -1015,9 +864,7 @@
                 const existingObjects = [...gameData.stiele, ...gameData.obstacles];
                 for (let i = 0; i < count; i++) {
                     const pos = getNonOverlappingPosition(existingObjects, 15, 15);
-                    if (pos) {
-                        gameData.stiele.push(new GameObject(pos.x, pos.y, 15, 15, 'orange', crypto.randomUUID()));
-                    }
+                    gameData.stiele.push(new GameObject(pos.x, pos.y, 15, 15, 'orange'));
                 }
             }
 
@@ -1025,9 +872,9 @@
                 cancelAnimationFrame(animationFrameId);
                 isRunning = false;
                 gameData.level = level;
-                
+
                 const settings = getLevelSettings(gameData.level);
-                
+
                 gameData = {
                     ...gameData,
                     herrWinkelmann: {
@@ -1042,118 +889,35 @@
                     stielCounter: 0,
                     lungenKapazitaet: maxLungenKapazitaet,
                     requiredStiele: settings.requiredStiele,
-                    players: {},
-                    gameStartTime: 0,
-                    multiplayerPlayers: {},
                 };
-                
-                if (gameMode === 'singleplayer') {
-                    const existingObjects = [gameData.herrWinkelmann];
-                    for (let i = 0; i < settings.obstacles; i++) {
-                        const obstacleSize = Math.random() * 30 + 30;
-                        const pos = getNonOverlappingPosition(existingObjects, obstacleSize, obstacleSize);
-                        if (pos) {
-                            const newObstacle = new GameObject(pos.x, pos.y, obstacleSize, obstacleSize, 'black');
-                            gameData.obstacles.push(newObstacle);
-                            existingObjects.push(newObstacle);
-                        }
-                    }
-                    generateStiele(settings.initialStiele);
-                    
-                    showOverlay("Willkommen! Sammle die Stiele!", false);
+
+                // Generate Obstacles
+                const existingObjects = [gameData.herrWinkelmann];
+                for (let i = 0; i < settings.obstacles; i++) {
+                    const obstacleSize = Math.random() * 30 + 30;
+                    const pos = getNonOverlappingPosition(existingObjects, obstacleSize, obstacleSize);
+                    const newObstacle = new GameObject(pos.x, pos.y, obstacleSize, obstacleSize, 'black');
+                    gameData.obstacles.push(newObstacle);
+                    existingObjects.push(newObstacle);
                 }
+                
+                // Initial Stiel generation
+                generateStiele(settings.initialStiele);
+
                 draw();
                 updateUI();
+                showOverlay("Willkommen! Sammle die Stiele!", false);
             }
-            
-            async function startGame() {
-                gameOverlay.classList.remove('active');
-                if (gameMode === 'multiplayer') {
-                    startMultiplayerGame();
-                } else if (!isRunning) {
+
+            function startGame() {
+                overlay.classList.remove('active');
+                if (!isRunning) {
                     isRunning = true;
                     lastTime = performance.now();
                     animationFrameId = requestAnimationFrame(gameLoop);
                     infoMessage.textContent = "Sammle die Stiele, bevor die Lungenkapazität aufgebraucht ist!";
                     speak("Los geht's! Nur nicht schlapp machen!");
                 }
-            }
-            
-            async function startMultiplayerGame() {
-                multiplayerTimerDisplay.style.display = 'block';
-                openLevelSelectButton.style.display = 'none';
-                openDialogueButton.style.display = 'none';
-                returnToModeSelectButton.style.display = 'block';
-                
-                resetGame();
-                
-                const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', multiplayerLobbyCode, 'players', userId);
-                await setDoc(playerDocRef, {
-                    x: canvas.width / 2,
-                    y: canvas.height / 2,
-                    stieleCount: 0,
-                    lungs: maxLungenKapazitaet,
-                    email: userEmail
-                });
-
-                const lobbyDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', multiplayerLobbyCode);
-                const lobbySnapshot = await getDoc(lobbyDocRef);
-                const lobbyData = lobbySnapshot.data();
-                
-                gameData.stiele = lobbyData.stiele;
-
-                playerStateUnsubscribe = onSnapshot(collection(db, `artifacts/${appId}/public/data/lobbies/${multiplayerLobbyCode}/players`), (snapshot) => {
-                    snapshot.docChanges().forEach(change => {
-                        const player = change.doc.data();
-                        gameData.multiplayerPlayers[change.doc.id] = player;
-                    });
-                });
-
-                isRunning = true;
-                lastTime = performance.now();
-                animationFrameId = requestAnimationFrame(gameLoop);
-                
-                multiplayerTimerId = setInterval(() => {
-                    const elapsedTime = (Date.now() - lobbyData.gameStartTime) / 1000;
-                    const remainingTime = Math.max(0, MULTIPLAYER_DURATION - elapsedTime);
-                    const minutes = Math.floor(remainingTime / 60);
-                    const seconds = Math.floor(remainingTime % 60);
-                    gameTimerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                    if (remainingTime <= 0) {
-                        endMultiplayerGame();
-                    }
-                }, 1000);
-            }
-            
-            async function endMultiplayerGame() {
-                isRunning = false;
-                cancelAnimationFrame(animationFrameId);
-                if (multiplayerTimerId) clearInterval(multiplayerTimerId);
-                if (playerStateUnsubscribe) playerStateUnsubscribe();
-
-                const lobbyDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', multiplayerLobbyCode);
-                const lobbySnapshot = await getDoc(lobbyDocRef);
-                const lobbyData = lobbySnapshot.data();
-                const players = lobbyData.players.sort((a, b) => b.stieleCount - a.stieleCount);
-                const winner = players[0];
-
-                let message;
-                if (winner) {
-                    if (winner.userId === userId) {
-                        message = `Herzlichen Glückwunsch! Sie haben mit ${winner.stieleCount} Stielen gewonnen!`;
-                    } else {
-                        message = `Das Spiel ist vorbei! ${winner.email} hat mit ${winner.stieleCount} Stielen gewonnen!`;
-                    }
-                } else {
-                    message = "Das Spiel ist vorbei! Kein Gewinner, da keine Stiele gesammelt wurden.";
-                }
-                
-                showOverlay(message, true);
-                
-                setTimeout(async () => {
-                    await deleteDoc(lobbyDocRef);
-                    showScreen('modeSelectContainer');
-                }, 5000);
             }
 
             function gameLoop(time) {
@@ -1167,14 +931,16 @@
                 }
             }
 
-            async function update(deltaTime) {
+            function update(deltaTime) {
+                const settings = getLevelSettings(gameData.level);
+                // Handle Movement
                 const speed = baseSpeed;
                 let dx = 0;
                 let dy = 0;
-                if (keys['arrowup'] || keys['w']) dy = -1;
-                if (keys['arrowdown'] || keys['s']) dy = 1;
-                if (keys['arrowleft'] || keys['a']) dx = -1;
-                if (keys['arrowright'] || keys['d']) dx = 1;
+                if (keys['ArrowUp'] || keys['w']) dy = -1;
+                if (keys['ArrowDown'] || keys['s']) dy = 1;
+                if (keys['ArrowLeft'] || keys['a']) dx = -1;
+                if (keys['ArrowRight'] || keys['d']) dx = 1;
 
                 if (dx !== 0 || dy !== 0) {
                     const length = Math.sqrt(dx * dx + dy * dy);
@@ -1184,117 +950,79 @@
                     }
                 }
 
+                // Boundary Check
                 gameData.herrWinkelmann.x = Math.max(0, Math.min(canvas.width - gameData.herrWinkelmann.width, gameData.herrWinkelmann.x));
                 gameData.herrWinkelmann.y = Math.max(0, Math.min(canvas.height - gameData.herrWinkelmann.height, gameData.herrWinkelmann.y));
-                
-                if (gameMode === 'multiplayer') {
-                    const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', multiplayerLobbyCode, 'players', userId);
-                    await setDoc(playerDocRef, { x: gameData.herrWinkelmann.x, y: gameData.herrWinkelmann.y, lungs: gameData.lungenKapazitaet }, { merge: true });
 
-                    gameData.stiele.forEach((stiel, index) => {
-                        if (checkCollision(gameData.herrWinkelmann, stiel)) {
-                             const lobbyDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', multiplayerLobbyCode);
-                             runTransaction(db, async (transaction) => {
-                                 const lobbyDoc = await transaction.get(lobbyDocRef);
-                                 if (!lobbyDoc.exists()) throw "Lobby does not exist!";
-                                 const currentStiele = lobbyDoc.data().stiele;
-                                 const stielIndex = currentStiele.findIndex(s => s.id === stiel.id);
-                                 
-                                 if (stielIndex !== -1) {
-                                     const updatedStiele = [...currentStiele];
-                                     updatedStiele.splice(stielIndex, 1);
-                                     
-                                     const players = lobbyDoc.data().players;
-                                     const myPlayer = players.find(p => p.userId === userId);
-                                     if (myPlayer) {
-                                         myPlayer.stieleCount++;
-                                     }
-                                     
-                                     transaction.update(lobbyDocRef, { stiele: updatedStiele, players: players });
-                                 }
-                             });
-                        }
-                    });
-
-                } else {
-                    const settings = getLevelSettings(gameData.level);
-                    gameData.lungenKapazitaet -= settings.lungenDrainRate * deltaTime;
-                    if (gameData.lungenKapazitaet <= 0) {
-                        endLevel(false, "Da gibt's nichts mehr...");
-                        return;
-                    }
-                    
-                    if (gameData.lungenKapazitaet < 20 && !lowLungsWarning) {
-                        speak("Uff... die Luft wird knapp!", "Orus");
-                        lowLungsWarning = true;
-                    } else if (gameData.lungenKapazitaet > 20) {
-                        lowLungsWarning = false;
-                    }
-                    
-                    gameData.stiele.forEach((stiel, index) => {
-                        if (checkCollision(gameData.herrWinkelmann, stiel)) {
-                            gameData.stiele.splice(index, 1);
-                            gameData.stielCounter++;
-                            gameData.lungenKapazitaet = Math.min(maxLungenKapazitaet, gameData.lungenKapazitaet + 10);
-                            
-                            if (gameData.stielCounter >= gameData.requiredStiele) {
-                                endLevel(true, "Winkelmann dankt.");
-                                return;
-                            }
-                        }
-                    });
-
-                    if (gameData.stiele.length === 0 && gameData.stielCounter < gameData.requiredStiele) {
-                        const stieleToGenerate = Math.min(5, gameData.requiredStiele - gameData.stielCounter);
-                        generateStiele(stieleToGenerate);
-                    }
-
-                    gameData.obstacles.forEach(obstacle => {
-                        if (checkCollision(gameData.herrWinkelmann, obstacle)) {
-                            gameData.lungenKapazitaet -= settings.lungLossOnHit;
-                            speak("Aua! Das tat weh!", "Charon");
-                        }
-                    });
+                // Lungenkapazitäts-Drain
+                gameData.lungenKapazitaet -= settings.lungenDrainRate * deltaTime;
+                if (gameData.lungenKapazitaet <= 0) {
+                    endLevel(false, "Da gibt's nichts mehr...");
+                    return;
                 }
                 
+                // Low lung capacity warning
+                if (gameData.lungenKapazitaet < 20 && !lowLungsWarning) {
+                    speak("Uff... die Luft wird knapp!", "Orus");
+                    lowLungsWarning = true;
+                } else if (gameData.lungenKapazitaet > 20) {
+                    lowLungsWarning = false;
+                }
+                
+                // Collision Detection with Stiele
+                gameData.stiele.forEach((stiel, index) => {
+                    if (checkCollision(gameData.herrWinkelmann, stiel)) {
+                        gameData.stiele.splice(index, 1);
+                        gameData.stielCounter++;
+                        gameData.lungenKapazitaet = Math.min(maxLungenKapazitaet, gameData.lungenKapazitaet + 10);
+                        
+                        if (gameData.stielCounter >= gameData.requiredStiele) {
+                            endLevel(true, "Winkelmann dankt.");
+                            return;
+                        }
+                    }
+                });
+
+                // Check for dynamic stiel generation
+                if (gameData.stiele.length === 0 && gameData.stielCounter < gameData.requiredStiele) {
+                    const stieleToGenerate = Math.min(5, gameData.requiredStiele - gameData.stielCounter);
+                    generateStiele(stieleToGenerate);
+                }
+
+                // Collision Detection with Obstacles
+                gameData.obstacles.forEach(obstacle => {
+                    if (checkCollision(gameData.herrWinkelmann, obstacle)) {
+                        gameData.lungenKapazitaet -= settings.lungLossOnHit;
+                        speak("Aua! Das tat weh!", "Charon");
+                    }
+                });
+
                 updateUI();
             }
 
             function draw() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
+                // Draw Stiele
                 gameData.stiele.forEach(stiel => {
                     ctx.beginPath();
                     ctx.arc(stiel.x + stiel.width / 2, stiel.y + stiel.height / 2, stiel.width / 2, 0, 2 * Math.PI);
-                    ctx.fillStyle = 'var(--accent)';
+                    ctx.fillStyle = '#ff7e5f';
                     ctx.fill();
-                    ctx.strokeStyle = 'var(--surface)';
+                    ctx.strokeStyle = '#fff';
                     ctx.lineWidth = 2;
                     ctx.stroke();
                 });
                 
-                if (gameMode === 'singleplayer') {
-                     gameData.obstacles.forEach(obstacle => {
-                        ctx.fillStyle = 'var(--text)';
-                        ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-                    });
-                }
+                // Draw Obstacles
+                gameData.obstacles.forEach(obstacle => {
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                });
 
-                const players = Object.values(gameData.multiplayerPlayers);
-                if (gameMode === 'multiplayer' && players.length > 0) {
-                    players.forEach(player => {
-                        const color = player.userId === userId ? 'var(--primary)' : 'var(--secondary)';
-                        ctx.fillStyle = color;
-                        ctx.fillRect(player.x, player.y, 30, 30);
-                        
-                        ctx.fillStyle = 'var(--text)';
-                        ctx.font = '12px "Inter", sans-serif';
-                        ctx.fillText(player.email.split('@')[0], player.x, player.y - 5);
-                    });
-                } else {
-                    ctx.fillStyle = 'var(--primary)';
-                    ctx.fillRect(gameData.herrWinkelmann.x, gameData.herrWinkelmann.y, gameData.herrWinkelmann.width, gameData.herrWinkelmann.height);
-                }
+                // Draw Herr Winkelmann
+                ctx.fillStyle = '#3f51b5';
+                ctx.fillRect(gameData.herrWinkelmann.x, gameData.herrWinkelmann.y, gameData.herrWinkelmann.width, gameData.herrWinkelmann.height);
             }
 
             function updateUI() {
@@ -1302,17 +1030,19 @@
                 lungenKapazitaetBar.style.width = `${lungenProzent}%`;
                 lungenKapazitaetText.textContent = `${Math.floor(lungenProzent)}%`;
 
-                const lungenColor = lungenProzent > 50 ? 'var(--success)' : (lungenProzent > 20 ? 'var(--accent)' : 'var(--danger)');
-                lungenKapazitaetBar.style.backgroundColor = lungenColor;
+                const lungenColor = lungenProzent > 50 ? '#4CAF50' : (lungenProzent > 20 ? '#FFC107' : '#F4436');
+                lungenKapazitaetBar.style.background = `linear-gradient(90deg, ${lungenColor}, ${lungenProzent > 50 ? '#8bc34a' : (lungenProzent > 20 ? '#ffeb3b' : '#ff7979')})`;
+                
+                stieleCounterText.textContent = `${gameData.stielCounter} / ${gameData.requiredStiele}`;
+                levelInfo.textContent = `Level ${gameData.level}`;
+                
+                infoMessage.textContent = "Bewegen Sie sich mit den Pfeiltasten oder WASD. Sammeln Sie alle Stiele, um das Level zu beenden.";
+            }
 
-                if (gameMode === 'multiplayer') {
-                    const myPlayer = gameData.multiplayerPlayers[userId];
-                    stieleCounterText.textContent = `${myPlayer ? myPlayer.stieleCount : 0}`;
-                    infoMessage.textContent = "Sammeln Sie mehr Stiele als Ihr Gegner!";
-                } else {
-                    stieleCounterText.textContent = `${gameData.stielCounter} / ${gameData.requiredStiele}`;
-                    infoMessage.textContent = `Level ${gameData.level}: Sammeln Sie alle Stiele, um das Level zu beenden.`;
-                }
+            function showOverlay(text, isWin) {
+                overlayText.textContent = text;
+                overlay.style.backgroundColor = isWin ? 'rgba(76, 175, 80, 0.7)' : 'rgba(255, 0, 0, 0.7)';
+                overlay.classList.add('active');
             }
 
             function endLevel(isWin, message) {
@@ -1320,6 +1050,8 @@
                 cancelAnimationFrame(animationFrameId);
                 showOverlay(message, isWin);
 
+                let delay = isWin ? 2000 : 1000;
+                
                 if (isWin) {
                     const levelUnlocked = saveHighestLevel(gameData.level + 1);
                     speak("Das war eine Meisterleistung!", "Zephyr");
@@ -1328,14 +1060,16 @@
                             const newLevelButton = document.getElementById(`level-button-${gameData.level + 1}`);
                             if (newLevelButton) {
                                 newLevelButton.disabled = false;
+                                newLevelButton.classList.add('unlocked');
+                                setTimeout(() => newLevelButton.classList.remove('unlocked'), 1000);
                             }
-                         }, 1000);
+                         }, delay / 2);
                     }
                 } else {
-                    speak("Da gibt's nichts mehr.", "Charon");
+                    speak("Da gibt's nichts mehr...", "Charon");
                 }
                 
-                setTimeout(openLevelSelect, 2000);
+                setTimeout(openLevelSelect, delay);
             }
 
             function checkCollision(rect1, rect2) {
@@ -1345,6 +1079,7 @@
                        rect1.y + rect1.height > rect2.y;
             }
 
+            // Level selection logic
             function populateLevelSelect() {
                 levelSelectGrid.innerHTML = '';
                 for (let i = 1; i <= TOTAL_LEVELS; i++) {
@@ -1354,6 +1089,11 @@
                     button.className = 'level-button';
                     if (i > highestLevel) {
                         button.disabled = true;
+                        button.innerHTML += `
+                            <svg class="lock-icon" viewBox="0 0 24 24">
+                                <path d="M18,11H17A1,1,0,0,0,16,12v2a1,1,0,0,0,1,1h1a1,1,0,0,0,1-1V12A1,1,0,0,0,18,11Zm-5,6a5,5,0,1,0-5-5A5,5,0,0,0,13,17ZM13,9a3,3,0,1,1-3-3A3,3,0,0,1,13,9Z"/>
+                            </svg>
+                        `;
                     }
                     button.addEventListener('click', () => {
                         resetGame(i);
@@ -1365,13 +1105,13 @@
             }
 
             function openDialogue() {
-                dialogueOverlay.classList.add('active');
+                dialogueOverlay.style.display = 'flex';
                 isRunning = false;
                 cancelAnimationFrame(animationFrameId);
             }
 
             function closeDialogue() {
-                dialogueOverlay.classList.remove('active');
+                dialogueOverlay.style.display = 'none';
                 if (gameData.lungenKapazitaet > 0) {
                     startGame();
                 }
@@ -1379,24 +1119,23 @@
 
             function openLevelSelect() {
                 populateLevelSelect();
-                levelSelectOverlay.classList.add('active');
+                levelSelectOverlay.style.display = 'flex';
                 isRunning = false;
                 cancelAnimationFrame(animationFrameId);
-                gameOverlay.classList.remove('active');
+                overlay.classList.remove('active');
             }
 
             function closeLevelSelect() {
-                levelSelectOverlay.classList.remove('active');
+                levelSelectOverlay.style.display = 'none';
                 if (gameData.lungenKapazitaet > 0) {
                     startGame();
                 }
             }
 
             document.addEventListener('keydown', (e) => {
-                const key = e.key.toLowerCase();
-                if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(key)) {
-                    keys[key] = true;
-                    if (!isRunning && gameOverlay.classList.contains('active')) {
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key.toLowerCase())) {
+                    keys[e.key.toLowerCase()] = true;
+                    if (!isRunning && overlay.classList.contains('active')) {
                          startGame();
                     }
                 }
@@ -1405,7 +1144,7 @@
             document.addEventListener('keyup', (e) => {
                 keys[e.key.toLowerCase()] = false;
             });
-            
+
             openDialogueButton.addEventListener('click', openDialogue);
             closeDialogueButton.addEventListener('click', closeDialogue);
             sendDialogueButton.addEventListener('click', () => {
@@ -1422,11 +1161,25 @@
             });
             openLevelSelectButton.addEventListener('click', openLevelSelect);
             closeLevelSelectButton.addEventListener('click', closeLevelSelect);
-            
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
 
             resetGame(highestLevel);
+        }
+        
+        // Try to initialize Firebase. All app logic is dependent on this.
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            console.log("Firebase initialized successfully.");
+            startAppFlow();
+        } catch (e) {
+            console.error("Firebase initialization failed. Please check the provided firebaseConfig.", e);
+            loadingMessage.textContent = "Fehler: Verbindung zur Datenbank fehlgeschlagen. Bitte versuchen Sie es später erneut.";
+            loadingMessage.style.color = "red";
+            loadingMessage.style.fontSize = "1.2em";
+            loadingMessage.style.fontWeight = "bold";
         }
     </script>
 </body>
