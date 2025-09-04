@@ -716,6 +716,7 @@
                         }
                     } catch (error) {
                         console.error("Fehler beim Laden/Erstellen der Benutzerdaten:", error);
+                        // Even if data loading fails, the user can still play from level 1.
                     }
                 } else {
                     userId = null;
@@ -737,6 +738,7 @@
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
+            console.log("Firebase initialisiert.");
             startAppFlow();
         } catch (e) {
             console.error("Firebase-Initialisierung fehlgeschlagen. Bitte überprüfen Sie die Konfiguration.", e);
@@ -1419,3 +1421,4 @@
     </script>
 </body>
 </html>
+
