@@ -874,6 +874,7 @@
                 newPos = {
                     x: Math.random() * (canvas.width - width),
                     y: Math.random() * (canvas.height - height),
+                    y: Math.random() * (canvas.height - height),
                     width: width,
                     height: height
                 };
@@ -888,7 +889,7 @@
                  isMultiplayerActive = true;
                  lastTime = performance.now();
                  animationFrameId = requestAnimationFrame(gameLoop);
-                 infoMessage.textContent = "Sammle die Stiele, bevor die Lungenkapazität aufgebraucht ist!";
+                 infoMessage.textContent = "Sammle die Stiele, bevor die Lungenkapazitaet aufgebraucht ist!";
                  speak("Los geht's! Nur nicht schlapp machen!", "Puck");
              }
          }
@@ -1130,7 +1131,7 @@
 
         // --- Gemini TTS API Integration ---
         const TTS_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=";
-        const API_KEY = "";
+        const API_KEY = "AIzaSyCoP3TRsVluxrVXVxeZ_lJfeOyqrNbbGa0";
 
         async function speak(text, voiceName = "Kore") {
             if (isSpeaking) return;
