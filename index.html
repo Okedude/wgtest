@@ -445,7 +445,7 @@
         </div>
 
         <div class="game-view" id="gameView" style="display: none;">
-            <div class="level-info" id="level-info">Level 1</div>
+            <div class="level-info" id="level-info"></div>
             <canvas id="gameCanvas"></canvas>
             <div class="ui-panel">
                 <div class="stats-container">
@@ -461,7 +461,7 @@
                         <span id="stiele-counter">0 / 10</span>
                     </div>
                 </div>
-                <div class="info-message" id="info-message">Bewegen Sie sich mit den Pfeiltasten oder WASD. Sammeln Sie alle Stiele, um das Level zu beenden.</div>
+                <div class="info-message" id="info-message"></div>
                 <div style="display: flex; gap: 10px;">
                     <button class="button" id="openDialogueButton">✨ Lass uns reden!</button>
                     <button class="button" id="returnToLobbyButton">Zurück zur Lobby</button>
@@ -566,7 +566,7 @@
         let lastTime = 0;
         let keys = {};
         let isRunning = false;
-        let gameData = { stiele: [] };
+        let gameData = { stiele: [], obstacles: [] };
         let isSpeaking = false;
         let lowLungsWarning = false;
         
@@ -575,8 +575,12 @@
 
         const baseSpeed = 250;
         const maxLungenKapazitaet = 100;
-        const STIELE_PER_LEVEL = 10;
+        const BASE_STIELE_PER_LEVEL = 10;
+        const BASE_OBSTACLES_PER_LEVEL = 2;
+        const MAX_LEVELS = 100;
         
+        let currentLevel = 1;
+
         let lobbiesCollectionRef;
 
         // Hauptanwendungsfluss, aufrufbar nach der Firebase-Initialisierung
@@ -694,6 +698,7 @@
             lobbyCodeDisplay.textContent = '---';
             startGameButton.style.display = 'none';
             lobbyStatus.textContent = '';
+            currentLevel = 1;
 
             // Lese die Lobby-ID aus der URL, falls vorhanden
             const urlParams = new URLSearchParams(window.location.search);
@@ -716,6 +721,7 @@
                     creatorId: userId,
                     createdAt: new Date(),
                     status: 'waiting',
+                    currentLevel: 1,
                 });
                 lobbyId = newLobbyId;
                 isLobbyCreator = true;
@@ -784,14 +790,18 @@
             const lobbyDocRef = doc(lobbiesCollectionRef, lobbyId);
             gameSessionListener = onSnapshot(lobbyDocRef, (docSnap) => {
                 const data = docSnap.data();
-                if (data && data.status === 'playing') {
-                    if (isRunning) return; // Prevent multiple starts
-                    initializeGame();
-                }
-                if (data && data.status === 'finished' && data.winner) {
-                    endGame(true, data.winner);
-                } else if (data && data.status === 'finished') {
-                    endGame(false, null);
+                if (data) {
+                    currentLevel = data.currentLevel || 1;
+                    if (data.status === 'playing') {
+                        if (!isRunning) {
+                            initializeGame();
+                        }
+                    }
+                    if (data.status === 'finished' && data.winner) {
+                        endGame(true, data.winner);
+                    } else if (data.status === 'finished') {
+                        endGame(false, null);
+                    }
                 }
             });
 
@@ -811,7 +821,7 @@
             if (isLobbyCreator) {
                 try {
                     const lobbyDocRef = doc(lobbiesCollectionRef, lobbyId);
-                    await setDoc(lobbyDocRef, { status: 'playing', requiredStiele: STIELE_PER_LEVEL, winner: null }, { merge: true });
+                    await setDoc(lobbyDocRef, { status: 'playing', currentLevel: 1, winner: null }, { merge: true });
                 } catch (e) {
                     console.error("Fehler beim Starten des Spiels:", e);
                 }
@@ -844,33 +854,64 @@
                 lungenKapazitaet: maxLungenKapazitaet
             };
             
-            gameData = { stiele: [] };
-
-            // Start a listener for game stiele
+            gameData = { stiele: [], obstacles: [] };
+            
             const stieleCollectionRef = collection(lobbiesCollectionRef, lobbyId, 'stiele');
             onSnapshot(stieleCollectionRef, (snapshot) => {
                  gameData.stiele = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             });
+            
+            const obstaclesCollectionRef = collection(lobbiesCollectionRef, lobbyId, 'obstacles');
+            onSnapshot(obstaclesCollectionRef, (snapshot) => {
+                gameData.obstacles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            });
 
             if (isLobbyCreator) {
-                // If we are the creator, generate new stiele for the game
-                await generateStiele(STIELE_PER_LEVEL);
+                await generateLevelContent();
             }
-            
+
             draw();
             updateUI();
             startGame();
         }
-        
-        async function generateStiele(count) {
-            const stieleCollectionRef = collection(lobbiesCollectionRef, lobbyId, 'stiele');
-            const batch = db.batch();
-            for (let i = 0; i < count; i++) {
-                const pos = getNonOverlappingPosition([], 15, 15);
-                const newStielRef = doc(stieleCollectionRef);
-                batch.set(newStielRef, { x: pos.x, y: pos.y, width: 15, height: 15, color: '#ff7e5f' });
+
+        async function generateLevelContent() {
+            // Delete old content
+            const stieleRef = collection(lobbiesCollectionRef, lobbyId, 'stiele');
+            const obstaclesRef = collection(lobbiesCollectionRef, lobbyId, 'obstacles');
+            const oldStiele = await getDocs(stieleRef);
+            oldStiele.forEach(doc => deleteDoc(doc.ref));
+            const oldObstacles = await getDocs(obstaclesRef);
+            oldObstacles.forEach(doc => deleteDoc(doc.ref));
+
+            const stieleCount = BASE_STIELE_PER_LEVEL + Math.floor(currentLevel / 2);
+            const obstaclesCount = BASE_OBSTACLES_PER_LEVEL + Math.floor(currentLevel / 5);
+            
+            // Generate new content
+            const stieleBatch = db.batch();
+            const positions = [];
+            for (let i = 0; i < stieleCount; i++) {
+                const pos = getNonOverlappingPosition(positions, 15, 15);
+                positions.push(pos);
+                const newStielRef = doc(stieleRef);
+                stieleBatch.set(newStielRef, { x: pos.x, y: pos.y, width: 15, height: 15, color: '#ff7e5f' });
             }
-            await batch.commit();
+            await stieleBatch.commit();
+
+            const obstaclesBatch = db.batch();
+            for (let i = 0; i < obstaclesCount; i++) {
+                const pos = getNonOverlappingPosition(positions, 30, 30);
+                positions.push(pos);
+                const newObstacleRef = doc(obstaclesRef);
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 100 + Math.random() * 50;
+                obstaclesBatch.set(newObstacleRef, {
+                    x: pos.x, y: pos.y, width: 30, height: 30,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed
+                });
+            }
+            await obstaclesBatch.commit();
         }
 
         async function getNonOverlappingPosition(existingObjects, width, height) {
@@ -880,10 +921,15 @@
                 newPos = {
                     x: Math.random() * (canvas.width - width),
                     y: Math.random() * (canvas.height - height),
-                    y: Math.random() * (canvas.height - height),
                     width: width,
                     height: height
                 };
+                for (const obj of existingObjects) {
+                    if (checkCollision(newPos, obj)) {
+                        overlapping = true;
+                        break;
+                    }
+                }
             } while (overlapping);
             return newPos;
         }
@@ -895,7 +941,7 @@
                  isMultiplayerActive = true;
                  lastTime = performance.now();
                  animationFrameId = requestAnimationFrame(gameLoop);
-                 infoMessage.textContent = "Sammle die Stiele, bevor die Lungenkapazitaet aufgebraucht ist!";
+                 infoMessage.textContent = "Sammle die Stiele, bevor die Lungenkapazitaet aufgebraucht ist! Meide die blauen Hindernisse.";
                  speak("Los geht's! Nur nicht schlapp machen!", "Puck");
              }
          }
@@ -911,7 +957,7 @@
             }
         }
 
-        function update(deltaTime) {
+        async function update(deltaTime) {
             const speed = baseSpeed;
             let dx = 0;
             let dy = 0;
@@ -933,7 +979,7 @@
 
             localPlayerState.lungenKapazitaet -= 1 * deltaTime;
             if (localPlayerState.lungenKapazitaet <= 0) {
-                // Game over, return to lobby
+                endGame(false, null);
                 return;
             }
             
@@ -944,6 +990,7 @@
                 lowLungsWarning = false;
             }
             
+            // Player-Stiel collision
             gameData.stiele.forEach(stiel => {
                 if (checkCollision(localPlayerState, stiel)) {
                     try {
@@ -964,7 +1011,11 @@
                                 const requiredStiele = lobbyDoc.data().requiredStiele;
 
                                 if (gameData.stiele.length - 1 <= 0) {
-                                     transaction.update(lobbyDocRef, { winner: userId, status: 'finished' });
+                                    if (currentLevel < MAX_LEVELS) {
+                                        transaction.update(lobbyDocRef, { currentLevel: currentLevel + 1, winner: null });
+                                    } else {
+                                        transaction.update(lobbyDocRef, { winner: userId, status: 'finished' });
+                                    }
                                 }
                             }
                         });
@@ -973,6 +1024,36 @@
                     }
                 }
             });
+
+            // Player-Obstacle collision
+            gameData.obstacles.forEach(obstacle => {
+                if (checkCollision(localPlayerState, obstacle)) {
+                    localPlayerState.lungenKapazitaet -= 20;
+                    infoMessage.textContent = "Aua! Ein Hindernis!";
+                    speak("Das tat weh! Schnell weiter!", "Charon");
+                }
+            });
+
+            // Update obstacle positions (only for creator)
+            if (isLobbyCreator) {
+                const obstacleBatch = db.batch();
+                gameData.obstacles.forEach(obstacle => {
+                    obstacle.x += obstacle.vx * deltaTime;
+                    obstacle.y += obstacle.vy * deltaTime;
+                    
+                    // Bounce off walls
+                    if (obstacle.x <= 0 || obstacle.x + obstacle.width >= canvas.width) {
+                        obstacle.vx *= -1;
+                    }
+                    if (obstacle.y <= 0 || obstacle.y + obstacle.height >= canvas.height) {
+                        obstacle.vy *= -1;
+                    }
+                    
+                    const obstacleRef = doc(lobbiesCollectionRef, lobbyId, 'obstacles', obstacle.id);
+                    obstacleBatch.update(obstacleRef, { x: obstacle.x, y: obstacle.y, vx: obstacle.vx, vy: obstacle.vy });
+                });
+                await obstacleBatch.commit();
+            }
 
             // Update local player state in Firebase
             updateLocalPlayerState();
@@ -983,6 +1064,7 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
+            // Draw stiele
             gameData.stiele.forEach(stiel => {
                 ctx.beginPath();
                 ctx.arc(stiel.x + stiel.width / 2, stiel.y + stiel.height / 2, stiel.width / 2, 0, 2 * Math.PI);
@@ -991,6 +1073,12 @@
                 ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 2;
                 ctx.stroke();
+            });
+
+            // Draw obstacles
+            gameData.obstacles.forEach(obstacle => {
+                ctx.fillStyle = '#4285F4'; // Blue for obstacles
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
             });
             
             for (const playerId in otherPlayers) {
@@ -1019,10 +1107,10 @@
             lungenKapazitaetText.textContent = `${Math.floor(lungenProzent)}%`;
 
             const lungenColor = lungenProzent > 50 ? '#4CAF50' : (lungenProzent > 20 ? '#FFC107' : '#F4436');
-            lungenKapazitaetBar.style.background = `linear-gradient(90deg, ${lungenColor}, ${lungenProzent > 50 ? '#8bc34a' : (lungenProzent > 20 ? '#ffeb3b' : '#ff7979')})`;
+            lungsKapazitaetBar.style.background = `linear-gradient(90deg, ${lungenColor}, ${lungenProzent > 50 ? '#8bc34a' : (lungenProzent > 20 ? '#ffeb3b' : '#ff7979')})`;
             
-            stieleCounterText.textContent = `${localPlayerState.stiele} / ${STIELE_PER_LEVEL}`;
-            levelInfo.textContent = `Spiel läuft`;
+            stieleCounterText.textContent = `${localPlayerState.stiele} / ${BASE_STIELE_PER_LEVEL + Math.floor(currentLevel / 2)}`;
+            levelInfo.textContent = `Level ${currentLevel} / ${MAX_LEVELS}`;
         }
 
         function updatePlayerListUI() {
@@ -1066,9 +1154,13 @@
             
             let message;
             if (isWin) {
-                const winnerEmail = otherPlayers[winnerId]?.email || auth.currentUser.email || 'Anonym';
-                const winnerName = winnerEmail.split('@')[0];
-                message = `${winnerName} hat gewonnen!`;
+                if (currentLevel === MAX_LEVELS) {
+                    message = "Coming soon!";
+                } else {
+                    const winnerEmail = otherPlayers[winnerId]?.email || auth.currentUser.email || 'Anonym';
+                    const winnerName = winnerEmail.split('@')[0];
+                    message = `${winnerName} hat gewonnen!`;
+                }
                 showOverlay(message);
                 speak("Das war eine Meisterleistung!", "Zephyr");
             } else {
