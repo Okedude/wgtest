@@ -573,9 +573,8 @@
         const baseSpeed = 250;
         const maxLungenKapazitaet = 100;
         const STIELE_PER_LEVEL = 10;
-
-        // Firebase-Referenzen
-        const lobbiesCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'lobbies');
+        
+        let lobbiesCollectionRef;
 
         // Hauptanwendungsfluss, aufrufbar nach der Firebase-Initialisierung
         async function startAppFlow() {
@@ -650,6 +649,7 @@
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     userId = user.uid;
+                    lobbiesCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'lobbies');
                     userInfoDisplay.textContent = `Angemeldet als: ${user.email || 'Anonym'}`;
                     authContainer.style.display = 'none';
                     mainContainer.style.display = 'flex';
