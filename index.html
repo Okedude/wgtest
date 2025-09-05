@@ -348,6 +348,10 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
         }
+        .auth-container button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
         .auth-container p {
             margin-top: 15px;
             font-size: 0.9em;
@@ -683,14 +687,70 @@
             const baseSpeed = 250;
             const maxLungenKapazitaet = 100;
             const TOTAL_LEVELS = 50;
+            const INITIAL_OBSTACLES = 1;
+
+            // Class for game objects
+            class GameObject {
+                constructor(x, y, width, height, color) {
+                    this.x = x;
+                    this.y = y;
+                    this.width = width;
+                    this.height = height;
+                    this.color = color;
+                }
+                draw() {
+                    ctx.fillStyle = this.color;
+                    ctx.fillRect(this.x, this.y, this.width, this.height);
+                }
+            }
+
+            // Class for moving obstacles
+            class MovingObstacle extends GameObject {
+                constructor(x, y, width, height, color, dx, dy, speed) {
+                    super(x, y, width, height, color);
+                    this.dx = dx;
+                    this.dy = dy;
+                    this.speed = speed;
+                }
+                update(deltaTime) {
+                    this.x += this.dx * this.speed * deltaTime;
+                    this.y += this.dy * this.speed * deltaTime;
+
+                    // Bounce off walls
+                    if (this.x <= 0 || this.x + this.width >= canvas.width) {
+                        this.dx *= -1;
+                    }
+                    if (this.y <= 0 || this.y + this.height >= canvas.height) {
+                        this.dy *= -1;
+                    }
+                }
+            }
+
+            // Function to get level settings dynamically
+            function getLevelSettings(level) {
+                const requiredStiele = Math.min(50, 5 + Math.floor(level * 1.5));
+                const obstacles = Math.min(20, INITIAL_OBSTACLES + Math.floor(level / 2));
+                const lungenDrainRate = 1 + (level - 1) * 0.1;
+                const lungLossOnHit = 15 + (level - 1) * 2;
+                const obstacleSpeed = 100 + (level - 1) * 10;
+                
+                return {
+                    requiredStiele: requiredStiele,
+                    initialStiele: 5,
+                    obstacles: obstacles,
+                    lungenDrainRate: lungenDrainRate,
+                    lungLossOnHit: lungLossOnHit,
+                    obstacleSpeed: obstacleSpeed,
+                };
+            }
 
             function getNonOverlappingPosition(existingObjects, width, height) {
                 let newPos, overlapping;
                 do {
                     overlapping = false;
                     newPos = {
-                        x: Math.random() * (canvas.width - width) + width / 2,
-                        y: Math.random() * (canvas.height - height) + height / 2,
+                        x: Math.random() * (canvas.width - width),
+                        y: Math.random() * (canvas.height - height),
                         width: width,
                         height: height
                     };
@@ -884,31 +944,6 @@
                 resetGame();
             }
 
-            class GameObject {
-                constructor(x, y, width, height, color) {
-                    this.x = x;
-                    this.y = y;
-                    this.width = width;
-                    this.height = height;
-                    this.color = color;
-                }
-                draw() {
-                    ctx.fillStyle = this.color;
-                    ctx.fillRect(this.x, this.y, this.width, this.height);
-                }
-            }
-            
-            // Function to get level settings dynamically
-            function getLevelSettings(level) {
-                return {
-                    requiredStiele: Math.min(50, 5 + Math.floor(level * 1.5)),
-                    initialStiele: 5,
-                    obstacles: Math.min(20, Math.floor((level - 1) / 3) + 1),
-                    lungenDrainRate: 1 + (level - 1) * 0.1,
-                    lungLossOnHit: 15,
-                };
-            }
-
             function generateStiele(count) {
                 const existingObjects = [...gameData.stiele, ...gameData.obstacles];
                 for (let i = 0; i < count; i++) {
@@ -940,12 +975,14 @@
                     requiredStiele: settings.requiredStiele,
                 };
 
-                // Generate Obstacles
+                // Generate Moving Obstacles
                 const existingObjects = [gameData.herrWinkelmann];
                 for (let i = 0; i < settings.obstacles; i++) {
                     const obstacleSize = Math.random() * 30 + 30;
                     const pos = getNonOverlappingPosition(existingObjects, obstacleSize, obstacleSize);
-                    const newObstacle = new GameObject(pos.x, pos.y, obstacleSize, obstacleSize, 'black');
+                    const dx = Math.random() > 0.5 ? 1 : -1;
+                    const dy = Math.random() > 0.5 ? 1 : -1;
+                    const newObstacle = new MovingObstacle(pos.x, pos.y, obstacleSize, obstacleSize, 'black', dx, dy, settings.obstacleSpeed);
                     gameData.obstacles.push(newObstacle);
                     existingObjects.push(newObstacle);
                 }
@@ -1038,8 +1075,9 @@
                     generateStiele(stieleToGenerate);
                 }
 
-                // Collision Detection with Obstacles
+                // Update and check for collision with Moving Obstacles
                 gameData.obstacles.forEach(obstacle => {
+                    obstacle.update(deltaTime);
                     if (checkCollision(gameData.herrWinkelmann, obstacle)) {
                         gameData.lungenKapazitaet -= settings.lungLossOnHit;
                         speak("Aua! Das tat weh!", "Charon");
