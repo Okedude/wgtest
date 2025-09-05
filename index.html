@@ -491,6 +491,9 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, onSnapshot, runTransaction, getDocs, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        setLogLevel('Debug');
 
         // Firebase-Konfiguration aus der Umgebung
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
@@ -861,10 +864,13 @@
         
         async function generateStiele(count) {
             const stieleCollectionRef = collection(lobbiesCollectionRef, lobbyId, 'stiele');
+            const batch = db.batch();
             for (let i = 0; i < count; i++) {
                 const pos = getNonOverlappingPosition([], 15, 15);
-                await addDoc(stieleCollectionRef, { x: pos.x, y: pos.y, width: 15, height: 15, color: '#ff7e5f' });
+                const newStielRef = doc(stieleCollectionRef);
+                batch.set(newStielRef, { x: pos.x, y: pos.y, width: 15, height: 15, color: '#ff7e5f' });
             }
+            await batch.commit();
         }
 
         async function getNonOverlappingPosition(existingObjects, width, height) {
@@ -1023,7 +1029,7 @@
             const allPlayers = {
                 ...otherPlayers,
                 [userId]: {
-                    email: auth.currentUser.email || 'Anonym',
+                    email: auth.currentUser?.email || 'Anonym',
                     stiele: localPlayerState.stiele || 0,
                     color: playerColor,
                 }
@@ -1094,13 +1100,15 @@
 
         // Event-Listener
         document.addEventListener('keydown', (e) => {
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key.toLowerCase())) {
+            if (isRunning && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key.toLowerCase())) {
                 keys[e.key.toLowerCase()] = true;
             }
         });
 
         document.addEventListener('keyup', (e) => {
-            keys[e.key.toLowerCase()] = false;
+            if (isRunning) {
+                keys[e.key.toLowerCase()] = false;
+            }
         });
 
         openDialogueButton.addEventListener('click', () => {
@@ -1112,7 +1120,7 @@
         });
         closeDialogueButton.addEventListener('click', () => {
             dialogueOverlay.style.display = 'none';
-            if (!isRunning) {
+            if (!isRunning && gameView.style.display === 'flex') {
                 startGame();
             }
         });
@@ -1131,7 +1139,7 @@
 
         // --- Gemini TTS API Integration ---
         const TTS_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=";
-        const API_KEY = "AIzaSyCoP3TRsVluxrVXVxeZ_lJfeOyqrNbbGa0";
+        const API_KEY = "";
 
         async function speak(text, voiceName = "Kore") {
             if (isSpeaking) return;
@@ -1297,7 +1305,7 @@
                     x: localPlayerState.x,
                     y: localPlayerState.y,
                     stiele: localPlayerState.stiele,
-                    email: auth.currentUser.email || 'Anonym',
+                    email: auth.currentUser?.email || 'Anonym',
                     color: playerColor,
                     lastActive: new Date(),
                 }, { merge: true });
