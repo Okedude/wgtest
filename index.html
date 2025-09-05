@@ -22,13 +22,15 @@
             user-select: none;
         }
         .game-container {
-            display: none; /* Initial hide */
+            display: flex;
             flex-direction: column;
             align-items: center;
             padding: 20px;
             background-color: #fff;
             border-radius: 15px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            max-width: 90%;
+            margin: auto;
         }
         canvas {
             background-color: #a4d3ff;
@@ -54,10 +56,12 @@
             width: 100%;
             margin-bottom: 15px;
             text-align: center;
+            gap: 10px;
         }
         .stat-item {
             font-size: 1.1em;
             font-weight: bold;
+            flex-grow: 1;
         }
         .progress-bar {
             width: 80%;
@@ -397,10 +401,34 @@
             width: 20px;
             height: 20px;
         }
+        
+        /* Leaderboard and user list */
+        .player-list {
+            margin-top: 20px;
+            width: 100%;
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            text-align: left;
+        }
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .player-item:last-child {
+            border-bottom: none;
+        }
+        .player-item.current {
+            font-weight: bold;
+            color: #ff7e5f;
+        }
     </style>
 </head>
 <body>
-    <div class="auth-container" id="authContainer">
+    <div class="auth-container" id="authContainer" style="display: none;">
         <div id="loadingMessage">Lade Spiel...</div>
         <div id="authForms" style="display: none;">
             <div id="loginForm">
@@ -434,7 +462,7 @@
         </div>
     </div>
 
-    <div class="game-container" id="gameContainer">
+    <div class="game-container" id="gameContainer" style="display: none;">
         <div id="userInfo"></div>
         <div class="level-info" id="level-info">Level 1</div>
         <canvas id="gameCanvas"></canvas>
@@ -459,7 +487,14 @@
                 <button class="button" id="logoutButton">Abmelden</button>
             </div>
         </div>
+
+        <!-- Player List / Leaderboard -->
+        <div class="player-list">
+            <h3>Mitspieler</h3>
+            <div id="player-list-container"></div>
+        </div>
     </div>
+    
     <div class="overlay" id="overlay">
         <span id="overlay-text"></span>
     </div>
@@ -488,22 +523,13 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, linkWithCredential, EmailAuthProvider, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, onSnapshot, runTransaction, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // WICHTIG: Ersetzen Sie die Platzhalter unten durch Ihre eigenen Firebase-Projektdaten
-        // Eine Anleitung dazu finden Sie in der Konversation.
-        const firebaseConfig = {
-          apiKey: "AIzaSyCoP3TRsVluxrVXVxeZ_lJfeOyqrNbbGa0",
-          authDomain: "winkelmanngame.firebaseapp.com",
-          projectId: "winkelmanngame",
-          storageBucket: "winkelmanngame.firebasestorage.app",
-          messagingSenderId: "1012811950512",
-          appId: "1:1012811950512:web:61d506f84c217eb156ce75",
-          measurementId: "G-FDH9FT3QYR"
-        };
-        const initialAuthToken = null;
-        const appId = firebaseConfig.appId;
+        // Firebase-Konfiguration aus der Umgebung
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
         let app, db, auth;
         let highestLevel = 1;
@@ -529,10 +555,16 @@
         const userInfoDisplay = document.getElementById('userInfo');
         const logoutButton = document.getElementById('logoutButton');
         const googleLoginButton = document.getElementById('googleLoginButton');
+        const playerListContainer = document.getElementById('player-list-container');
+        
+        // Multiplayer-spezifische Variablen
+        const GAME_SESSION_ID = 'mainMultiplayerSession';
+        let isMultiplayerActive = false;
+        let otherPlayers = {};
+        let localPlayerState = {};
 
-        // Main application flow, to be called after Firebase init
+        // Hauptanwendungsfluss, aufrufbar nach der Firebase-Initialisierung
         async function startAppFlow() {
-            // Check if Firebase was initialized successfully
             if (!auth || !db) {
                 console.error("Firebase not initialized. Cannot start app flow.");
                 loadingMessage.textContent = "Fehler: Firebase-Konfiguration ungültig. Bitte überprüfen Sie Ihre Daten.";
@@ -601,25 +633,21 @@
                 }
             });
             
-            // Main Auth State Listener
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
-                    // User is signed in. This is triggered after anonymous sign-in or email/password sign-in.
                     userId = user.uid;
                     userInfoDisplay.textContent = `Angemeldet als: ${user.email || 'Anonym'}`;
                     authContainer.style.display = 'none';
                     gameContainer.style.display = 'flex';
                     
-                    // Fetch highest level from Firestore
-                    const gameDocRef = doc(db, 'artifacts', appId, 'users', userId, 'gameData', 'progress');
+                    const userDocRef = doc(db, 'artifacts', appId, 'users', userId, 'gameData', 'progress');
                     try {
-                        const docSnap = await getDoc(gameDocRef);
+                        const docSnap = await getDoc(userDocRef);
                         if (docSnap.exists()) {
                             highestLevel = docSnap.data().highestLevel;
                             console.log("Progress loaded from Firestore. Highest level:", highestLevel);
                         } else {
-                            // Create a new document if it doesn't exist
-                            await setDoc(gameDocRef, { highestLevel: 1 });
+                            await setDoc(userDocRef, { highestLevel: 1 });
                             console.log("New progress document created.");
                         }
                     } catch (error) {
@@ -629,30 +657,31 @@
                     initializeGame();
                     
                 } else {
-                    // User is signed out.
                     userInfoDisplay.textContent = '';
                     authContainer.style.display = 'flex';
                     gameContainer.style.display = 'none';
+                    isMultiplayerActive = false;
                     console.log("User logged out.");
-                    
-                    // Show auth forms and hide loading message
                     loadingMessage.style.display = 'none';
                     authForms.style.display = 'block';
-
-                    // For github.io, we need to sign in anonymously on load
-                    signInAnonymously(auth)
-                        .then(() => console.log("Signed in anonymously."))
-                        .catch(e => console.error("Firebase anonymous sign-in failed:", e));
                 }
             });
 
-            // Initial sign-in attempt
-            signInAnonymously(auth)
-                .then(() => console.log("Signed in anonymously."))
-                .catch(e => console.error("Firebase anonymous sign-in failed:", e));
+            // Erster Anmeldeversuch mit dem bereitgestellten Token
+            if (initialAuthToken) {
+                try {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } catch (e) {
+                    console.error("Anmeldung mit benutzerdefiniertem Token fehlgeschlagen:", e);
+                    loadingMessage.style.display = 'none';
+                    authForms.style.display = 'block';
+                }
+            } else {
+                 loadingMessage.style.display = 'none';
+                 authForms.style.display = 'block';
+            }
         }
 
-        // The entire game logic, wrapped in a function to be called after auth state is determined
         async function initializeGame() {
             const canvas = document.getElementById('gameCanvas');
             const ctx = canvas.getContext('2d');
@@ -664,7 +693,6 @@
             const infoMessage = document.getElementById('info-message');
             const levelInfo = document.getElementById('level-info');
             
-            // UI elements
             const openDialogueButton = document.getElementById('openDialogueButton');
             const dialogueOverlay = document.getElementById('dialogueOverlay');
             const dialogueText = document.getElementById('dialogueText');
@@ -683,68 +711,91 @@
             let gameData = { level: 1 };
             let isSpeaking = false;
             let lowLungsWarning = false;
+            
+            const playerColors = ['#ff7e5f', '#4CAF50', '#4285F4', '#F4B400', '#DB4437', '#0F9D58'];
+            let playerColor = playerColors[Math.floor(Math.random() * playerColors.length)];
 
             const baseSpeed = 250;
             const maxLungenKapazitaet = 100;
             const TOTAL_LEVELS = 50;
             const INITIAL_OBSTACLES = 1;
+            const STIELE_PER_LEVEL = 10;
 
-            // Class for game objects
-            class GameObject {
-                constructor(x, y, width, height, color) {
-                    this.x = x;
-                    this.y = y;
-                    this.width = width;
-                    this.height = height;
-                    this.color = color;
-                }
-                draw() {
-                    ctx.fillStyle = this.color;
-                    ctx.fillRect(this.x, this.y, this.width, this.height);
-                }
-            }
-
-            // Class for moving obstacles
-            class MovingObstacle extends GameObject {
-                constructor(x, y, width, height, color, dx, dy, speed) {
-                    super(x, y, width, height, color);
-                    this.dx = dx;
-                    this.dy = dy;
-                    this.speed = speed;
-                }
-                update(deltaTime) {
-                    this.x += this.dx * this.speed * deltaTime;
-                    this.y += this.dy * this.speed * deltaTime;
-
-                    // Bounce off walls
-                    if (this.x <= 0 || this.x + this.width >= canvas.width) {
-                        this.dx *= -1;
-                    }
-                    if (this.y <= 0 || this.y + this.height >= canvas.height) {
-                        this.dy *= -1;
-                    }
+            const playersCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'games', GAME_SESSION_ID, 'players');
+            const stieleCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'games', GAME_SESSION_ID, 'stiele');
+            const gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', GAME_SESSION_ID);
+            
+            // Spielerstatus in Firestore aktualisieren
+            async function updateLocalPlayerState() {
+                if (!isMultiplayerActive || !userId) return;
+                try {
+                    await setDoc(doc(playersCollectionRef, userId), {
+                        x: localPlayerState.x,
+                        y: localPlayerState.y,
+                        stiele: localPlayerState.stiele,
+                        email: auth.currentUser.email || 'Anonym',
+                        color: playerColor,
+                        lastActive: new Date(),
+                    }, { merge: true });
+                } catch (e) {
+                    console.error("Fehler beim Aktualisieren des Spielerstatus:", e);
                 }
             }
 
-            // Function to get level settings dynamically
-            function getLevelSettings(level) {
-                const requiredStiele = Math.min(50, 5 + Math.floor(level * 1.5));
-                const obstacles = Math.min(20, INITIAL_OBSTACLES + Math.floor(level / 2));
-                const lungenDrainRate = 1 + (level - 1) * 0.1;
-                const lungLossOnHit = 15 + (level - 1) * 2;
-                const obstacleSpeed = 100 + (level - 1) * 10;
+            // Echtzeit-Listener für alle Spieler
+            onSnapshot(playersCollectionRef, (snapshot) => {
+                snapshot.docChanges().forEach(change => {
+                    const playerData = change.doc.data();
+                    const playerId = change.doc.id;
+
+                    if (playerId === userId) {
+                        return; // Lokalen Spieler überspringen
+                    }
+
+                    if (change.type === 'removed') {
+                        delete otherPlayers[playerId];
+                    } else {
+                        otherPlayers[playerId] = {
+                            x: playerData.x,
+                            y: playerData.y,
+                            stiele: playerData.stiele,
+                            email: playerData.email,
+                            color: playerData.color
+                        };
+                    }
+                });
+                updatePlayerListUI();
+            });
+
+            // Echtzeit-Listener für Stiele
+            onSnapshot(stieleCollectionRef, (snapshot) => {
+                gameData.stiele = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            });
+            
+            async function resetGameSession() {
+                // Entferne alte Stiele und Spieler
+                const oldStiele = await getDocs(stieleCollectionRef);
+                oldStiele.forEach(doc => deleteDoc(doc.ref));
+
+                const oldPlayers = await getDocs(playersCollectionRef);
+                oldPlayers.forEach(doc => deleteDoc(doc.ref));
                 
-                return {
-                    requiredStiele: requiredStiele,
-                    initialStiele: 5,
-                    obstacles: obstacles,
-                    lungenDrainRate: lungenDrainRate,
-                    lungLossOnHit: lungLossOnHit,
-                    obstacleSpeed: obstacleSpeed,
-                };
+                // Setze globale Spielvariablen zurück
+                await setDoc(gameDocRef, { requiredStiele: STIELE_PER_LEVEL, currentStiele: 0, winner: null });
+
+                // Erzeuge neue Stiele
+                generateStiele(STIELE_PER_LEVEL);
             }
 
-            function getNonOverlappingPosition(existingObjects, width, height) {
+            // Funktion zur Generierung von Stielen
+            async function generateStiele(count) {
+                for (let i = 0; i < count; i++) {
+                    const pos = getNonOverlappingPosition([], 15, 15);
+                    await addDoc(stieleCollectionRef, { x: pos.x, y: pos.y, width: 15, height: 15, color: '#ff7e5f' });
+                }
+            }
+            
+            async function getNonOverlappingPosition(existingObjects, width, height) {
                 let newPos, overlapping;
                 do {
                     overlapping = false;
@@ -754,11 +805,6 @@
                         width: width,
                         height: height
                     };
-                    
-                    if (checkCollision(gameData.herrWinkelmann, newPos)) {
-                        overlapping = true;
-                        continue;
-                    }
                     
                     for (const obj of existingObjects) {
                         if (checkCollision(obj, newPos)) {
@@ -772,7 +818,7 @@
 
             // --- Gemini TTS API Integration ---
             const TTS_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=";
-            const API_KEY = ""; // Die API-Schlüssel für Gemini werden in dieser Umgebung von der Plattform bereitgestellt.
+            const API_KEY = "";
 
             async function speak(text, voiceName = "Kore") {
                 if (isSpeaking) return;
@@ -925,17 +971,7 @@
                 }
             }
             // --- End of Gemini LLM Dialogue Integration ---
-
-            async function saveHighestLevel(level) {
-                if (level > highestLevel) {
-                    highestLevel = level;
-                    const gameDocRef = doc(db, 'artifacts', appId, 'users', userId, 'gameData', 'progress');
-                    await setDoc(gameDocRef, { highestLevel: highestLevel }, { merge: true });
-                    return true;
-                }
-                return false;
-            }
-
+            
             function resizeCanvas() {
                 canvas.width = window.innerWidth * 0.7;
                 canvas.height = window.innerHeight * 0.7;
@@ -944,67 +980,51 @@
                 resetGame();
             }
 
-            function generateStiele(count) {
-                const existingObjects = [...gameData.stiele, ...gameData.obstacles];
-                for (let i = 0; i < count; i++) {
-                    const pos = getNonOverlappingPosition(existingObjects, 15, 15);
-                    gameData.stiele.push(new GameObject(pos.x, pos.y, 15, 15, 'orange'));
-                }
-            }
-
-            function resetGame(level = 1) {
+            async function resetGame() {
                 cancelAnimationFrame(animationFrameId);
                 isRunning = false;
-                gameData.level = level;
-
-                const settings = getLevelSettings(gameData.level);
-
+                
+                // Setze den lokalen Spielerstatus zurück
+                localPlayerState = {
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    width: 30,
+                    height: 30,
+                    speed: baseSpeed,
+                    stiele: 0,
+                    lungenKapazitaet: maxLungenKapazitaet
+                };
+                
                 gameData = {
-                    ...gameData,
-                    herrWinkelmann: {
-                        x: canvas.width / 2,
-                        y: canvas.height / 2,
-                        width: 30,
-                        height: 30,
-                        speed: baseSpeed,
-                    },
                     stiele: [],
                     obstacles: [],
-                    stielCounter: 0,
-                    lungenKapazitaet: maxLungenKapazitaet,
-                    requiredStiele: settings.requiredStiele,
+                    requiredStiele: STIELE_PER_LEVEL,
                 };
-
-                // Generate Moving Obstacles
-                const existingObjects = [gameData.herrWinkelmann];
-                for (let i = 0; i < settings.obstacles; i++) {
-                    const obstacleSize = Math.random() * 30 + 30;
-                    const pos = getNonOverlappingPosition(existingObjects, obstacleSize, obstacleSize);
-                    const dx = Math.random() > 0.5 ? 1 : -1;
-                    const dy = Math.random() > 0.5 ? 1 : -1;
-                    const newObstacle = new MovingObstacle(pos.x, pos.y, obstacleSize, obstacleSize, 'black', dx, dy, settings.obstacleSpeed);
-                    gameData.obstacles.push(newObstacle);
-                    existingObjects.push(newObstacle);
-                }
                 
-                // Initial Stiel generation
-                generateStiele(settings.initialStiele);
+                // Wenn wir der erste Spieler in der Session sind, setzen wir das Spiel zurück
+                const gameSnap = await getDoc(gameDocRef);
+                if (!gameSnap.exists() || gameSnap.data().requiredStiele === undefined) {
+                     await resetGameSession();
+                } else {
+                    gameData.requiredStiele = gameSnap.data().requiredStiele;
+                }
 
                 draw();
                 updateUI();
                 showOverlay("Willkommen! Sammle die Stiele!", false);
             }
-
-            function startGame() {
-                overlay.classList.remove('active');
-                if (!isRunning) {
-                    isRunning = true;
-                    lastTime = performance.now();
-                    animationFrameId = requestAnimationFrame(gameLoop);
-                    infoMessage.textContent = "Sammle die Stiele, bevor die Lungenkapazität aufgebraucht ist!";
-                    speak("Los geht's! Nur nicht schlapp machen!");
-                }
-            }
+            
+            async function startGame() {
+                 overlay.classList.remove('active');
+                 if (!isRunning) {
+                     isRunning = true;
+                     isMultiplayerActive = true;
+                     lastTime = performance.now();
+                     animationFrameId = requestAnimationFrame(gameLoop);
+                     infoMessage.textContent = "Sammle die Stiele, bevor die Lungenkapazität aufgebraucht ist!";
+                     speak("Los geht's! Nur nicht schlapp machen!");
+                 }
+             }
 
             function gameLoop(time) {
                 const deltaTime = (time - lastTime) / 1000;
@@ -1018,8 +1038,7 @@
             }
 
             function update(deltaTime) {
-                const settings = getLevelSettings(gameData.level);
-                // Handle Movement
+                // Update local player state based on input
                 const speed = baseSpeed;
                 let dx = 0;
                 let dy = 0;
@@ -1031,58 +1050,74 @@
                 if (dx !== 0 || dy !== 0) {
                     const length = Math.sqrt(dx * dx + dy * dy);
                     if (length > 0) {
-                        gameData.herrWinkelmann.x += (dx / length) * speed * deltaTime;
-                        gameData.herrWinkelmann.y += (dy / length) * speed * deltaTime;
+                        localPlayerState.x += (dx / length) * speed * deltaTime;
+                        localPlayerState.y += (dy / length) * speed * deltaTime;
                     }
                 }
 
                 // Boundary Check
-                gameData.herrWinkelmann.x = Math.max(0, Math.min(canvas.width - gameData.herrWinkelmann.width, gameData.herrWinkelmann.x));
-                gameData.herrWinkelmann.y = Math.max(0, Math.min(canvas.height - gameData.herrWinkelmann.height, gameData.herrWinkelmann.y));
+                localPlayerState.x = Math.max(0, Math.min(canvas.width - localPlayerState.width, localPlayerState.x));
+                localPlayerState.y = Math.max(0, Math.min(canvas.height - localPlayerState.height, localPlayerState.y));
 
                 // Lungenkapazitäts-Drain
-                gameData.lungenKapazitaet -= settings.lungenDrainRate * deltaTime;
-                if (gameData.lungenKapazitaet <= 0) {
+                localPlayerState.lungenKapazitaet -= 1 * deltaTime;
+                if (localPlayerState.lungenKapazitaet <= 0) {
                     endLevel(false, "Da gibt's nichts mehr...");
                     return;
                 }
                 
-                // Low lung capacity warning
-                if (gameData.lungenKapazitaet < 20 && !lowLungsWarning) {
+                if (localPlayerState.lungenKapazitaet < 20 && !lowLungsWarning) {
                     speak("Uff... die Luft wird knapp!", "Orus");
                     lowLungsWarning = true;
-                } else if (gameData.lungenKapazitaet > 20) {
+                } else if (localPlayerState.lungenKapazitaet > 20) {
                     lowLungsWarning = false;
                 }
                 
-                // Collision Detection with Stiele
-                gameData.stiele.forEach((stiel, index) => {
-                    if (checkCollision(gameData.herrWinkelmann, stiel)) {
-                        gameData.stiele.splice(index, 1);
-                        gameData.stielCounter++;
-                        gameData.lungenKapazitaet = Math.min(maxLungenKapazitaet, gameData.lungenKapazitaet + 10);
-                        
-                        if (gameData.stielCounter >= gameData.requiredStiele) {
-                            endLevel(true, "Winkelmann dankt.");
-                            return;
+                // Kollisionserkennung und Stiele-Aufnahme
+                gameData.stiele.forEach(stiel => {
+                    if (checkCollision(localPlayerState, stiel)) {
+                        // Sammle den Stiel nur lokal, bis die Transaktion abgeschlossen ist
+                        // Die onSnapshot wird die Ansicht synchronisieren
+                        try {
+                            // Transaktion, um Rennbedingungen zu vermeiden
+                            runTransaction(db, async (transaction) => {
+                                const stielRef = doc(stieleCollectionRef, stiel.id);
+                                const stielDoc = await transaction.get(stielRef);
+                                
+                                if (stielDoc.exists()) {
+                                    // Entferne den Stiel aus der Datenbank
+                                    transaction.delete(stielRef);
+                                    
+                                    // Erhöhe den Zähler für diesen Spieler
+                                    localPlayerState.stiele++;
+                                    localPlayerState.lungenKapazitaet = Math.min(maxLungenKapazitaet, localPlayerState.lungenKapazitaet + 10);
+                                    
+                                    // Aktualisiere den Spielerstatus in der Datenbank
+                                    const playerRef = doc(playersCollectionRef, userId);
+                                    transaction.set(playerRef, { stiele: localPlayerState.stiele, lungenKapazitaet: localPlayerState.lungenKapazitaet }, { merge: true });
+
+                                    // Überprüfe, ob das Spiel beendet ist
+                                    const gameRef = doc(gameDocRef,);
+                                    const gameDoc = await transaction.get(gameRef);
+                                    
+                                    const currentStieleCount = gameDoc.data().currentStiele || 0;
+                                    const updatedCount = currentStieleCount + 1;
+                                    
+                                    if (updatedCount >= gameData.requiredStiele && !gameDoc.data().winner) {
+                                        transaction.update(gameRef, { winner: userId, currentStiele: updatedCount });
+                                    } else {
+                                        transaction.update(gameRef, { currentStiele: updatedCount });
+                                    }
+                                }
+                            });
+                        } catch (e) {
+                            console.error("Transaktion fehlgeschlagen: ", e);
                         }
                     }
                 });
 
-                // Check for dynamic stiel generation
-                if (gameData.stiele.length === 0 && gameData.stielCounter < gameData.requiredStiele) {
-                    const stieleToGenerate = Math.min(5, gameData.requiredStiele - gameData.stielCounter);
-                    generateStiele(stieleToGenerate);
-                }
-
-                // Update and check for collision with Moving Obstacles
-                gameData.obstacles.forEach(obstacle => {
-                    obstacle.update(deltaTime);
-                    if (checkCollision(gameData.herrWinkelmann, obstacle)) {
-                        gameData.lungenKapazitaet -= settings.lungLossOnHit;
-                        speak("Aua! Das tat weh!", "Charon");
-                    }
-                });
+                // Sende lokalen Status an Firebase
+                updateLocalPlayerState();
 
                 updateUI();
             }
@@ -1090,7 +1125,7 @@
             function draw() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
-                // Draw Stiele
+                // Zeichne Stiele
                 gameData.stiele.forEach(stiel => {
                     ctx.beginPath();
                     ctx.arc(stiel.x + stiel.width / 2, stiel.y + stiel.height / 2, stiel.width / 2, 0, 2 * Math.PI);
@@ -1101,30 +1136,71 @@
                     ctx.stroke();
                 });
                 
-                // Draw Obstacles
-                gameData.obstacles.forEach(obstacle => {
-                    ctx.fillStyle = '#333';
-                    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-                });
+                // Zeichne andere Spieler
+                for (const playerId in otherPlayers) {
+                    const player = otherPlayers[playerId];
+                    ctx.fillStyle = player.color;
+                    ctx.fillRect(player.x, player.y, localPlayerState.width, localPlayerState.height);
+                    
+                    ctx.fillStyle = 'black';
+                    ctx.font = '12px Roboto Mono';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(player.email.split('@')[0], player.x + localPlayerState.width / 2, player.y - 5);
+                }
 
-                // Draw Herr Winkelmann
-                ctx.fillStyle = '#3f51b5';
-                ctx.fillRect(gameData.herrWinkelmann.x, gameData.herrWinkelmann.y, gameData.herrWinkelmann.width, gameData.herrWinkelmann.height);
+                // Zeichne den lokalen Spieler
+                ctx.fillStyle = playerColor;
+                ctx.fillRect(localPlayerState.x, localPlayerState.y, localPlayerState.width, localPlayerState.height);
+
+                ctx.fillStyle = 'black';
+                ctx.font = '12px Roboto Mono';
+                ctx.textAlign = 'center';
+                ctx.fillText('Sie', localPlayerState.x + localPlayerState.width / 2, localPlayerState.y - 5);
             }
 
             function updateUI() {
-                const lungenProzent = Math.max(0, (gameData.lungenKapazitaet / maxLungenKapazitaet) * 100);
+                const lungenProzent = Math.max(0, (localPlayerState.lungenKapazitaet / maxLungenKapazitaet) * 100);
                 lungenKapazitaetBar.style.width = `${lungenProzent}%`;
                 lungenKapazitaetText.textContent = `${Math.floor(lungenProzent)}%`;
 
                 const lungenColor = lungenProzent > 50 ? '#4CAF50' : (lungenProzent > 20 ? '#FFC107' : '#F4436');
                 lungenKapazitaetBar.style.background = `linear-gradient(90deg, ${lungenColor}, ${lungenProzent > 50 ? '#8bc34a' : (lungenProzent > 20 ? '#ffeb3b' : '#ff7979')})`;
                 
-                stieleCounterText.textContent = `${gameData.stielCounter} / ${gameData.requiredStiele}`;
-                levelInfo.textContent = `Level ${gameData.level}`;
+                stieleCounterText.textContent = `${localPlayerState.stiele} / ${gameData.requiredStiele}`;
+                levelInfo.textContent = `Spiel läuft`;
                 
-                infoMessage.textContent = "Bewegen Sie sich mit den Pfeiltasten oder WASD. Sammeln Sie alle Stiele, um das Level zu beenden.";
+                // Update player list UI
+                updatePlayerListUI();
             }
+            
+            function updatePlayerListUI() {
+                const allPlayers = {
+                    ...otherPlayers,
+                    [userId]: {
+                        email: auth.currentUser.email || 'Anonym',
+                        stiele: localPlayerState.stiele,
+                        color: playerColor,
+                    }
+                };
+                
+                const sortedPlayers = Object.entries(allPlayers).sort(([, a], [, b]) => b.stiele - a.stiele);
+                
+                playerListContainer.innerHTML = '';
+                sortedPlayers.forEach(([id, player]) => {
+                    const isCurrentUser = id === userId;
+                    const playerDiv = document.createElement('div');
+                    playerDiv.className = 'player-item' + (isCurrentUser ? ' current' : '');
+                    playerDiv.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 10px; height: 10px; border-radius: 50%; background-color: ${player.color};"></div>
+                            <span>${player.email.split('@')[0]}</span>
+                        </div>
+                        <span>${player.stiele} Stiele</span>
+                    `;
+                    playerListContainer.appendChild(playerDiv);
+                });
+            }
+
 
             function showOverlay(text, isWin) {
                 overlayText.textContent = text;
@@ -1132,31 +1208,31 @@
                 overlay.classList.add('active');
             }
 
-            function endLevel(isWin, message) {
+            async function endLevel(isWin, message, winnerId = null) {
                 isRunning = false;
+                isMultiplayerActive = false;
                 cancelAnimationFrame(animationFrameId);
-                showOverlay(message, isWin);
-
-                let delay = isWin ? 2000 : 1000;
                 
                 if (isWin) {
-                    const levelUnlocked = saveHighestLevel(gameData.level + 1);
+                    const winnerEmail = otherPlayers[winnerId]?.email || auth.currentUser.email || 'Anonym';
+                    const winnerName = winnerEmail.split('@')[0];
+                    showOverlay(`${winnerName} hat gewonnen!`, true);
                     speak("Das war eine Meisterleistung!", "Zephyr");
-                    if (levelUnlocked) {
-                         setTimeout(() => {
-                            const newLevelButton = document.getElementById(`level-button-${gameData.level + 1}`);
-                            if (newLevelButton) {
-                                newLevelButton.disabled = false;
-                                newLevelButton.classList.add('unlocked');
-                                setTimeout(() => newLevelButton.classList.remove('unlocked'), 1000);
-                            }
-                         }, delay / 2);
-                    }
                 } else {
+                    showOverlay(message, false);
                     speak("Da gibt's nichts mehr...", "Charon");
                 }
                 
-                setTimeout(openLevelSelect, delay);
+                // Cleanup after a delay
+                setTimeout(async () => {
+                     // Wenn die Transaktion den Sieger nicht setzt, kann der Verlierer das Spiel neu starten.
+                     // Wenn Sieger gesetzt ist, sollte nur der Sieger das Spiel neu starten.
+                     const gameDocSnap = await getDoc(gameDocRef);
+                     if (gameDocSnap.data()?.winner === userId) {
+                         await resetGameSession();
+                         startGame();
+                     }
+                }, 3000);
             }
 
             function checkCollision(rect1, rect2) {
@@ -1166,59 +1242,7 @@
                        rect1.y + rect1.height > rect2.y;
             }
 
-            // Level selection logic
-            function populateLevelSelect() {
-                levelSelectGrid.innerHTML = '';
-                for (let i = 1; i <= TOTAL_LEVELS; i++) {
-                    const button = document.createElement('button');
-                    button.textContent = i;
-                    button.id = `level-button-${i}`;
-                    button.className = 'level-button';
-                    if (i > highestLevel) {
-                        button.disabled = true;
-                        button.innerHTML += `
-                            <svg class="lock-icon" viewBox="0 0 24 24">
-                                <path d="M18,11H17A1,1,0,0,0,16,12v2a1,1,0,0,0,1,1h1a1,1,0,0,0,1-1V12A1,1,0,0,0,18,11Zm-5,6a5,5,0,1,0-5-5A5,5,0,0,0,13,17ZM13,9a3,3,0,1,1-3-3A3,3,0,0,1,13,9Z"/>
-                            </svg>
-                        `;
-                    }
-                    button.addEventListener('click', () => {
-                        resetGame(i);
-                        closeLevelSelect();
-                        startGame();
-                    });
-                    levelSelectGrid.appendChild(button);
-                }
-            }
-
-            function openDialogue() {
-                dialogueOverlay.style.display = 'flex';
-                isRunning = false;
-                cancelAnimationFrame(animationFrameId);
-            }
-
-            function closeDialogue() {
-                dialogueOverlay.style.display = 'none';
-                if (gameData.lungenKapazitaet > 0) {
-                    startGame();
-                }
-            }
-
-            function openLevelSelect() {
-                populateLevelSelect();
-                levelSelectOverlay.style.display = 'flex';
-                isRunning = false;
-                cancelAnimationFrame(animationFrameId);
-                overlay.classList.remove('active');
-            }
-
-            function closeLevelSelect() {
-                levelSelectOverlay.style.display = 'none';
-                if (gameData.lungenKapazitaet > 0) {
-                    startGame();
-                }
-            }
-
+            // Event-Listener
             document.addEventListener('keydown', (e) => {
                 if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key.toLowerCase())) {
                     keys[e.key.toLowerCase()] = true;
@@ -1232,8 +1256,19 @@
                 keys[e.key.toLowerCase()] = false;
             });
 
-            openDialogueButton.addEventListener('click', openDialogue);
-            closeDialogueButton.addEventListener('click', closeDialogue);
+            openDialogueButton.addEventListener('click', () => {
+                if (isRunning) {
+                     isRunning = false;
+                     cancelAnimationFrame(animationFrameId);
+                }
+                dialogueOverlay.style.display = 'flex';
+            });
+            closeDialogueButton.addEventListener('click', () => {
+                dialogueOverlay.style.display = 'none';
+                if (!isRunning) {
+                    startGame();
+                }
+            });
             sendDialogueButton.addEventListener('click', () => {
                 const userQuery = dialogueInput.value.trim();
                 if (userQuery) {
@@ -1246,15 +1281,27 @@
                     sendDialogueButton.click();
                 }
             });
-            openLevelSelectButton.addEventListener('click', openLevelSelect);
-            closeLevelSelectButton.addEventListener('click', closeLevelSelect);
+            
+            // Level-Auswahl ist im Multiplayer-Modus deaktiviert
+            openLevelSelectButton.style.display = 'none';
+            closeLevelSelectButton.style.display = 'none';
+
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
 
-            resetGame(highestLevel);
+            // Setze einen Listener für den Spielstand, um den Sieger zu bestimmen
+            onSnapshot(gameDocRef, (doc) => {
+                const data = doc.data();
+                if (data && data.winner) {
+                    endLevel(true, `${data.winner} hat gewonnen!`, data.winner);
+                }
+            });
+
+            // Setze das Spiel beim ersten Laden zurück und starte es
+            resetGame();
+            startGame();
         }
         
-        // Try to initialize Firebase. All app logic is dependent on this.
         try {
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
